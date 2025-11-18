@@ -1,9 +1,13 @@
 import React, {useState, useEffect} from 'react';
 import {Box, Text, useInput} from 'ink';
-import {SessionManager, SessionMetadata} from '../../../utils/session-manager.js';
+import {
+	SessionManager,
+	SessionMetadata,
+} from '../../../utils/session-manager.js';
 
 interface SessionSelectorProps {
 	onSubmit: (sessionId: string) => void;
+	onDelete?: (sessionId: string) => void;
 	onCancel: () => void;
 }
 
@@ -11,6 +15,7 @@ const VISIBLE_ITEM_COUNT = 10;
 
 export default function SessionSelector({
 	onSubmit,
+	onDelete,
 	onCancel,
 }: SessionSelectorProps) {
 	const [sessions, setSessions] = useState<SessionMetadata[]>([]);
@@ -22,6 +27,15 @@ export default function SessionSelector({
 		setSessions(loadedSessions);
 	}, []);
 
+	const refreshSessions = () => {
+		const sessionManager = new SessionManager();
+		const loadedSessions = sessionManager.listSessions();
+		setSessions(loadedSessions);
+		if (selectedIndex >= loadedSessions.length && loadedSessions.length > 0) {
+			setSelectedIndex(loadedSessions.length - 1);
+		}
+	};
+
 	useInput((input, key) => {
 		if (key.return) {
 			if (sessions.length > 0) {
@@ -32,6 +46,15 @@ export default function SessionSelector({
 
 		if (key.escape || (key.ctrl && input === 'c')) {
 			onCancel();
+			return;
+		}
+
+		if (input === 'd' || input === 'D') {
+			if (sessions.length > 0 && onDelete) {
+				const sessionToDelete = sessions[selectedIndex];
+				onDelete(sessionToDelete.id);
+				refreshSessions();
+			}
 			return;
 		}
 
@@ -115,8 +138,9 @@ export default function SessionSelector({
 							{isSelected && (
 								<Box marginLeft={2}>
 									<Text color="gray" dimColor>
-										{formatDate(session.timestamp)} • {session.messageCount} msgs
-										• {formatTokens(session.totalTokens)} tokens • {session.provider}/{session.model}
+										{formatDate(session.timestamp)} • {session.messageCount}{' '}
+										msgs • {formatTokens(session.totalTokens)} tokens •{' '}
+										{session.provider}/{session.model}
 									</Text>
 								</Box>
 							)}
@@ -135,7 +159,7 @@ export default function SessionSelector({
 
 			<Box marginTop={1}>
 				<Text color="gray" dimColor>
-					↵ to select • ESC to cancel
+					↵ select • D delete • ESC cancel
 				</Text>
 			</Box>
 		</Box>

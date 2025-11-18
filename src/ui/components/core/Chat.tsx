@@ -363,6 +363,26 @@ export default function Chat({agent}: ChatProps) {
 		}
 	};
 
+	const handleSessionDelete = (sessionId: string) => {
+		const sessionManager = new SessionManager();
+		const session = sessionManager.getSession(sessionId);
+		const sessionName = session?.name || sessionId;
+
+		const deleted = sessionManager.deleteSession(sessionId);
+
+		if (deleted) {
+			addMessage({
+				role: 'system',
+				content: `Deleted session: **${sessionName}**`,
+			});
+		} else {
+			addMessage({
+				role: 'system',
+				content: `Failed to delete session: **${sessionName}**`,
+			});
+		}
+	};
+
 	const handleSessionCancel = () => {
 		setShowSessionSelector(false);
 		addMessage({
@@ -444,6 +464,7 @@ export default function Chat({agent}: ChatProps) {
 					) : showSessionSelector ? (
 						<SessionSelector
 							onSubmit={handleSessionSelect}
+							onDelete={handleSessionDelete}
 							onCancel={handleSessionCancel}
 						/>
 					) : showInput ? (

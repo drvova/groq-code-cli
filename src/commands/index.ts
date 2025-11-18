@@ -8,7 +8,6 @@ import {initCommand} from './definitions/init.js';
 import {reasoningCommand} from './definitions/reasoning.js';
 import {statsCommand} from './definitions/stats.js';
 import {resumeCommand} from './definitions/resume.js';
-import {deleteCommand} from './definitions/delete.js';
 import {newCommand} from './definitions/new.js';
 
 const availableCommands: CommandDefinition[] = [
@@ -19,7 +18,6 @@ const availableCommands: CommandDefinition[] = [
 	clearCommand,
 	newCommand,
 	resumeCommand,
-	deleteCommand,
 	initCommand,
 	reasoningCommand,
 	statsCommand,
