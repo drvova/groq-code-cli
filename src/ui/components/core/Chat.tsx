@@ -93,6 +93,7 @@ export default function Chat({agent}: ChatProps) {
 	const [showSessionSelector, setShowSessionSelector] = useState(false);
 	const [showMCPSelector, setShowMCPSelector] = useState(false);
 	const [animationFrame, setAnimationFrame] = useState(0);
+	const [scrollOffset, setScrollOffset] = useState(0);
 
 	// Handle global keyboard shortcuts
 	useInput((input, key) => {
@@ -102,6 +103,17 @@ export default function Chat({agent}: ChatProps) {
 		if (key.shift && key.tab) {
 			toggleAutoApprove();
 		}
+
+		// Page Up/Down scrolling
+		if (key.pageUp) {
+			setScrollOffset(prev => Math.min(prev + 5, messages.length - 1));
+		} else if (key.pageDown) {
+			setScrollOffset(prev => Math.max(0, prev - 5));
+		} else if (key.return && key.ctrl) {
+			// Ctrl+Enter - scroll to bottom
+			setScrollOffset(0);
+		}
+
 		if (key.escape) {
 			// If waiting for error retry decision, cancel retry
 			if (pendingError) {
@@ -159,6 +171,11 @@ export default function Chat({agent}: ChatProps) {
 		}, 200);
 		return () => clearInterval(interval);
 	}, []);
+
+	// Auto-scroll to bottom when new messages arrive
+	useEffect(() => {
+		setScrollOffset(0);
+	}, [messages.length]);
 
 	const handleSendMessage = async (message: string) => {
 		if (message.trim() && !isProcessing) {
@@ -416,6 +433,7 @@ export default function Chat({agent}: ChatProps) {
 				<MessageHistory
 					messages={messages}
 					showReasoning={showReasoning}
+					scrollOffset={scrollOffset}
 					usageData={{
 						prompt_tokens: sessionStats.promptTokens,
 						completion_tokens: sessionStats.completionTokens,

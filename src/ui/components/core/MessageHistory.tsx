@@ -26,12 +26,14 @@ interface MessageHistoryProps {
 	messages: ChatMessage[];
 	showReasoning?: boolean;
 	usageData?: Usage;
+	scrollOffset?: number;
 }
 
 export default function MessageHistory({
 	messages,
 	showReasoning = true,
 	usageData,
+	scrollOffset = 0,
 }: MessageHistoryProps) {
 	const scrollRef = useRef<any>(null);
 	const [highlighter, setHighlighter] = useState<Highlighter | null>(null);
@@ -239,6 +241,11 @@ export default function MessageHistory({
 		}
 	};
 
+	const visibleMessages =
+		scrollOffset > 0
+			? messages.slice(0, messages.length - scrollOffset)
+			: messages;
+
 	return (
 		<Box ref={scrollRef} flexDirection="column" flexGrow={1} overflow="hidden">
 			{messages.length === 0 ? (
@@ -257,7 +264,17 @@ export default function MessageHistory({
 					</Text>
 				</Box>
 			) : (
-				messages.map(renderMessage)
+				<>
+					{visibleMessages.map(renderMessage)}
+					{scrollOffset > 0 && (
+						<Box marginTop={1}>
+							<Text color="yellow" dimColor>
+								↓ Scrolled up ({scrollOffset} messages hidden below) - Press
+								Page Down or End to scroll to bottom
+							</Text>
+						</Box>
+					)}
+				</>
 			)}
 		</Box>
 	);
