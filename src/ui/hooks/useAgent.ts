@@ -176,10 +176,10 @@ export function useAgent(
 									return {
 										...msg,
 										content: result.userRejected
-											? `🚫 ${name} rejected by user`
+											? `⊗ ${name} rejected by user`
 											: result.success
 											? `✓ ${name} completed successfully`
-											: `🔴 ${name} failed: ${result.error || 'Unknown error'}`,
+											: `✗ ${name} failed: ${result.error || 'Unknown error'}`,
 										toolExecution: {
 											...msg.toolExecution!,
 											status: result.userRejected

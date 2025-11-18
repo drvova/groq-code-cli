@@ -2,12 +2,15 @@ import React, {useState, useEffect} from 'react';
 import {Text} from 'ink';
 import {MCPManager} from '../../../core/mcp-manager.js';
 import {getMCPStatusConfig} from './utils/status.js';
+import {DISPLAY_CONFIG} from './utils/config.js';
 
 interface MCPStatusProps {
 	refreshInterval?: number;
 }
 
-export default function MCPStatus({refreshInterval = 2000}: MCPStatusProps) {
+export default function MCPStatus({
+	refreshInterval = DISPLAY_CONFIG.MCP_REFRESH_INTERVAL,
+}: MCPStatusProps) {
 	const [connectedCount, setConnectedCount] = useState(0);
 	const [totalServers, setTotalServers] = useState(0);
 	const [hasErrors, setHasErrors] = useState(false);

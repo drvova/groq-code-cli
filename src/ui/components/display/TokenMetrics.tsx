@@ -85,9 +85,9 @@ export default function TokenMetrics({
 	};
 
 	const getStatusText = (): string => {
-		if (isPaused) return '⏸ Waiting for approval...';
+		if (isPaused) return '▌▌ Waiting for approval...';
 		if (isActive)
-			return `⚡ ${DISPLAY_CONFIG.LOADING_ANIMATIONS[loadingMessageIndex]}...`;
+			return `◈ ${DISPLAY_CONFIG.LOADING_ANIMATIONS[loadingMessageIndex]}...`;
 		return '';
 	};
 
