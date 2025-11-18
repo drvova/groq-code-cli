@@ -46,13 +46,13 @@ export default function Stats({ usage }: StatsProps) {
   };
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={1}>
+    <Box flexDirection="column" borderStyle="classic" borderColor="cyan" paddingX={1}>
       <Box marginBottom={1}>
         <Text color="cyan" bold>📊 Session Stats</Text>
       </Box>
       
       <Box flexDirection="column" marginBottom={2}>
-        <Box justifyContent="flex-start" marginBottom={1} borderStyle="single" borderColor="gray" borderTop={false} borderLeft={false} borderRight={false} paddingBottom={0}>
+        <Box justifyContent="flex-start" marginBottom={1} borderStyle="classic" borderColor="gray" borderTop={false} borderLeft={false} borderRight={false} paddingBottom={0}>
           <Text color="gray">Performance</Text>
         </Box>
         <Box flexDirection="row" justifyContent="center" gap={4}>
@@ -68,7 +68,7 @@ export default function Stats({ usage }: StatsProps) {
       </Box>
       
       <Box flexDirection="column">
-        <Box justifyContent="flex-start" marginBottom={1} borderStyle="single" borderColor="gray" borderTop={false} borderLeft={false} borderRight={false} paddingBottom={0}>
+        <Box justifyContent="flex-start" marginBottom={1} borderStyle="classic" borderColor="gray" borderTop={false} borderLeft={false} borderRight={false} paddingBottom={0}>
           <Text color="gray">Token Usage</Text>
         </Box>
         <Box flexDirection="row" justifyContent="center" gap={4}>
