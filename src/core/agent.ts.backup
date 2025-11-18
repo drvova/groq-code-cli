@@ -1,3 +1,6 @@
+import Groq from 'groq-sdk';
+import type {ClientOptions} from 'groq-sdk';
+import OpenAI from 'openai';
 import {executeTool} from '../tools/tools.js';
 import {
 	validateReadBeforeEdit,
@@ -11,13 +14,20 @@ import {
 } from '../tools/tool-schemas.js';
 import {ConfigManager} from '../utils/local-settings.js';
 import {getProxyAgent, getProxyInfo} from '../utils/proxy-config.js';
+import {fetchProviders} from '../utils/models-api.js';
 import {MCPManager} from './mcp-manager.js';
-import {LLMProvider, ProviderFactory, Message} from './providers/index.js';
 import fs from 'fs';
 import path from 'path';
 
+interface Message {
+	role: 'system' | 'user' | 'assistant' | 'tool';
+	content: string;
+	tool_calls?: any[];
+	tool_call_id?: string;
+}
+
 export class Agent {
-	private provider: LLMProvider | null = null;
+	private client: Groq | OpenAI | null = null;
 	private messages: Message[] = [];
 	private apiKey: string | null = null;
 	private model: string;
@@ -225,19 +235,67 @@ When asked about your identity, you should identify yourself as a coding assista
 			debugLog(`Using ${proxyInfo.type} proxy: ${proxyInfo.url}`);
 		}
 
-		// Get selected provider
+		// Initialize client based on selected provider
 		this.currentProvider = this.configManager.getSelectedProvider() || 'groq';
 
-		// Create provider using factory
-		this.provider = await ProviderFactory.create(this.currentProvider, {
-			apiKey,
-			proxyAgent,
-		});
+		if (this.currentProvider === 'groq') {
+			// Use Groq SDK for Groq provider
+			const clientOptions: ClientOptions = {apiKey};
+			if (proxyAgent) {
+				clientOptions.httpAgent = proxyAgent;
+			}
+			this.client = new Groq(clientOptions);
+			debugLog(
+				'Groq client initialized with provided API key' +
+					(proxyInfo.enabled ? ' and proxy' : ''),
+			);
+		} else {
+			// Use OpenAI-compatible client for other providers
+			await this.initializeOpenAICompatibleClient(apiKey, proxyAgent);
+		}
+	}
 
-		debugLog(
-			`Provider initialized: ${this.currentProvider}` +
-				(proxyInfo.enabled ? ' with proxy' : ''),
-		);
+	private async initializeOpenAICompatibleClient(
+		apiKey: string,
+		proxyAgent: any,
+	): Promise<void> {
+		try {
+			// Fetch provider info to get base URL
+			const configManager = new ConfigManager();
+			let cachedProviders = configManager.getCachedProviders();
+
+			if (!cachedProviders) {
+				cachedProviders = await fetchProviders();
+				configManager.setCachedProviders(cachedProviders);
+			}
+
+			const providerInfo = cachedProviders.find(
+				p => p.id === this.currentProvider,
+			);
+
+			if (providerInfo?.apiBaseUrl) {
+				const clientOptions: any = {
+					apiKey,
+					baseURL: providerInfo.apiBaseUrl,
+				};
+				if (proxyAgent) {
+					clientOptions.httpAgent = proxyAgent;
+				}
+				this.client = new OpenAI(clientOptions);
+				debugLog(
+					`OpenAI-compatible client initialized for provider: ${this.currentProvider} with baseURL: ${providerInfo.apiBaseUrl}`,
+				);
+			} else {
+				throw new Error(
+					`Provider ${this.currentProvider} not found or missing API base URL`,
+				);
+			}
+		} catch (error) {
+			debugLog(`Failed to initialize OpenAI-compatible client: ${error}`);
+			throw new Error(
+				`Failed to initialize client for provider ${this.currentProvider}: ${error}`,
+			);
+		}
 	}
 
 	public async saveApiKey(apiKey: string): Promise<void> {
@@ -248,7 +306,7 @@ When asked about your identity, you should identify yourself as a coding assista
 	public clearApiKey(): void {
 		this.configManager.clearApiKey();
 		this.apiKey = null;
-		this.provider = null;
+		this.client = null;
 	}
 
 	public clearHistory(): void {
@@ -395,8 +453,8 @@ When asked about your identity, you should identify yourself as a coding assista
 		await this.loadMCPTools();
 
 		// Check API key on first message send
-		if (!this.provider) {
-			debugLog('Initializing provider...');
+		if (!this.client) {
+			debugLog('Initializing client...');
 			// Try environment variable first
 			const envApiKey = process.env.GROQ_API_KEY;
 			if (envApiKey) {
@@ -431,7 +489,7 @@ When asked about your identity, you should identify yourself as a coding assista
 					}
 				}
 			}
-			debugLog('Provider initialized successfully');
+			debugLog('Client initialized successfully');
 		}
 
 		// Add user message
@@ -451,9 +509,9 @@ When asked about your identity, you should identify yourself as a coding assista
 				}
 
 				try {
-					// Check provider exists
-					if (!this.provider) {
-						throw new Error('Provider not initialized');
+					// Check client exists
+					if (!this.client) {
+						throw new Error('Groq client not initialized');
 					}
 
 					debugLog('Making API call to Groq with model:', this.model);
@@ -485,36 +543,43 @@ When asked about your identity, you should identify yourself as a coding assista
 					// Create AbortController for this request
 					this.currentAbortController = new AbortController();
 
-					// Use provider to stream response
-					let message: any = null;
-					let reasoning: string | undefined;
-					let usage: any = null;
+					const response = await (this.client as any).chat.completions.create(
+						{
+							model: this.model,
+							messages: this.messages as any,
+							tools: ToolRegistry.getAllSchemas(),
+							tool_choice: 'auto',
+							temperature: this.temperature,
+							max_tokens: 8000,
+							stream: false,
+						},
+						{
+							signal: this.currentAbortController.signal,
+						},
+					);
 
-					for await (const chunk of this.provider.stream(this.messages, {
-						model: this.model,
-						temperature: this.temperature,
-						tools: ToolRegistry.getAllSchemas(),
-						maxTokens: 8000,
-						signal: this.currentAbortController.signal,
-					})) {
-						if (chunk.finish_reason === 'usage') {
-							// Extract usage data from chunk
-							usage = chunk;
-						} else {
-							// This is the main response chunk
-							message = {
-								content: chunk.content,
-								tool_calls: chunk.tool_calls,
-							};
-							reasoning = chunk.reasoning;
-						}
+					debugLog('Full API response received:', response);
+					debugLog('Response usage:', response.usage);
+					debugLog(
+						'Response finish_reason:',
+						response.choices[0].finish_reason,
+					);
+					debugLog('Response choices length:', response.choices.length);
+
+					const message = response.choices[0].message;
+
+					// Extract reasoning if present
+					const reasoning = (message as any).reasoning;
+
+					// Pass usage data to callback if available
+					if (response.usage && this.onApiUsage) {
+						this.onApiUsage({
+							prompt_tokens: response.usage.prompt_tokens,
+							completion_tokens: response.usage.completion_tokens,
+							total_tokens: response.usage.total_tokens,
+							total_time: response.usage.total_time,
+						});
 					}
-
-					if (!message) {
-						throw new Error('No response received from provider');
-					}
-
-					debugLog('Provider response received');
 					debugLog('Message content length:', message.content?.length || 0);
 					debugLog('Message has tool_calls:', !!message.tool_calls);
 					debugLog(
@@ -522,14 +587,14 @@ When asked about your identity, you should identify yourself as a coding assista
 						message.tool_calls?.length || 0,
 					);
 
-					// Pass usage data to callback if available
-					if (usage && this.onApiUsage) {
-						this.onApiUsage({
-							prompt_tokens: usage.prompt_tokens || 0,
-							completion_tokens: usage.completion_tokens || 0,
-							total_tokens: usage.total_tokens || 0,
-							total_time: usage.total_time,
-						});
+					if (
+						response.choices[0].finish_reason !== 'stop' &&
+						response.choices[0].finish_reason !== 'tool_calls'
+					) {
+						debugLog(
+							'WARNING - Unexpected finish_reason:',
+							response.choices[0].finish_reason,
+						);
 					}
 
 					// Handle tool calls if present
