@@ -26,8 +26,8 @@ async function startChat(
 	debug?: boolean,
 	proxy?: string,
 ): Promise<void> {
-	console.log(
-		chalk.cyan.bgHex('#0a0e14')(`
+	const terminalWidth = process.stdout.columns || 80;
+	const logo = `
    ██████  ██    ██  █████
   ██    ██ ██    ██ ██   ██
   ██    ██ ██    ██ ███████
@@ -39,8 +39,16 @@ async function startChat(
   ██       ██    ██ ██    ██ ██████
   ██       ██    ██ ██    ██ ██
    ███████  ██████  ███████  ███████
-`),
-	);
+`;
+
+	const logoLines = logo.split('\n');
+	const maxLineLength = Math.max(...logoLines.map(line => line.length));
+	const padding = Math.max(0, Math.floor((terminalWidth - maxLineLength) / 2));
+	const centeredLogo = logoLines
+		.map(line => ' '.repeat(padding) + line)
+		.join('\n');
+
+	console.log(chalk.cyan.bgHex('#0a0e14')(centeredLogo));
 
 	let defaultModel = 'moonshotai/kimi-k2-instruct';
 
