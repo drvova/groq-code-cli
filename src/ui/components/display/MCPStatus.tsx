@@ -16,6 +16,7 @@ export default function MCPStatus({refreshInterval = 2000}: MCPStatusProps) {
 			const mcpManager = MCPManager.getInstance();
 			const statuses = mcpManager.getServerStatus();
 
+			// Only count servers that are both enabled AND have a configuration
 			const enabledServers = statuses.filter(s => !s.disabled);
 			const connected = enabledServers.filter(s => s.connected);
 			const withErrors = enabledServers.filter(s => s.error);
@@ -30,20 +31,24 @@ export default function MCPStatus({refreshInterval = 2000}: MCPStatusProps) {
 		return () => clearInterval(interval);
 	}, [refreshInterval]);
 
+	// Hide indicator if no enabled servers configured
 	if (totalServers === 0) return null;
 
 	let color: string;
-	if (connectedCount === 0 || hasErrors) {
+	let statusText: string;
+
+	if (connectedCount === 0) {
 		color = 'red';
+		statusText = hasErrors
+			? `MCP: OFF (${totalServers} error${totalServers > 1 ? 's' : ''})`
+			: `MCP: OFF (${totalServers} disconnected)`;
 	} else if (connectedCount < totalServers) {
 		color = 'yellow';
+		statusText = `MCP: ${connectedCount}/${totalServers}`;
 	} else {
 		color = 'green';
+		statusText = `MCP: ${connectedCount}/${totalServers}`;
 	}
 
-	return (
-		<Text color={color}>
-			MCP: {connectedCount}/{totalServers}
-		</Text>
-	);
+	return <Text color={color}>{statusText}</Text>;
 }

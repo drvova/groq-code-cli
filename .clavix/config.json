@@ -1,0 +1,21 @@
+{
+  version: '1.4.0',
+  providers: [
+    'droid',
+    'agents-md',
+  ],
+  templates: {
+    prdQuestions: 'default',
+    fullPrd: 'default',
+    quickPrd: 'default',
+  },
+  outputs: {
+    path: '.clavix/outputs',
+    format: 'markdown',
+  },
+  preferences: {
+    autoOpenOutputs: false,
+    verboseLogging: false,
+    preserveSessions: true,
+  },
+}
