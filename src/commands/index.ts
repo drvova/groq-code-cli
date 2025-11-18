@@ -9,7 +9,6 @@ import {reasoningCommand} from './definitions/reasoning.js';
 import {statsCommand} from './definitions/stats.js';
 import {sessionsCommand} from './definitions/sessions.js';
 import {resumeCommand} from './definitions/resume.js';
-import {saveCommand} from './definitions/save.js';
 import {deleteCommand} from './definitions/delete.js';
 import {newCommand} from './definitions/new.js';
 
@@ -25,7 +24,6 @@ const availableCommands: CommandDefinition[] = [
 	statsCommand,
 	sessionsCommand,
 	resumeCommand,
-	saveCommand,
 	deleteCommand,
 ];
 

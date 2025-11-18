@@ -2,13 +2,11 @@ import {CommandDefinition, CommandContext} from '../base.js';
 
 export const clearCommand: CommandDefinition = {
 	command: 'clear',
-	description: 'Clear chat history and context',
+	description: 'Clear chat history (auto-saves current session)',
 	handler: ({addMessage, clearHistory}: CommandContext, args?: string) => {
-		// Check if user wants to skip auto-save with --no-save flag
 		const skipSave = args?.includes('--no-save');
 
 		if (!skipSave) {
-			// Trigger auto-save before clearing
 			const timestamp = new Date().toLocaleString();
 			addMessage({
 				role: 'system',

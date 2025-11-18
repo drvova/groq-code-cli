@@ -52,8 +52,8 @@ export const sessionsCommand: CommandDefinition = {
 		content += '\n**Commands:**\n';
 		content += '- `/new` - Start a new session (auto-saves current)\n';
 		content += '- `/resume <name|id>` - Resume a session\n';
-		content += '- `/save <name>` - Save current conversation\n';
 		content += '- `/delete <name|id>` - Delete a session\n';
+		content += '- `/clear` - Clear chat (auto-saves current)\n';
 
 		addMessage({
 			role: 'system',
