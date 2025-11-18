@@ -285,8 +285,14 @@ export default function Chat({agent}: ChatProps) {
 					/>
 				) : (
 					<Box>
+						<Text color="cyan">
+							{['█', '▓', '▒', '░', ' '][Math.floor(Date.now() / 200) % 5]}
+						</Text>
 						<Text color="gray" dimColor>
-							Processing...
+							Processing
+						</Text>
+						<Text color="cyan">
+							{[' ', '░', '▒', '▓', '█'][Math.floor(Date.now() / 200) % 5]}
 						</Text>
 					</Box>
 				)}
