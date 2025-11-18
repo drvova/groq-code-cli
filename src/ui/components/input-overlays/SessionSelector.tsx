@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react';
-import {Box, Text, useInput} from 'ink';
+import {Box, Text} from 'ink';
 import {
 	SessionManager,
 	SessionMetadata,
@@ -8,6 +8,7 @@ import {
 	formatTokenCount,
 	formatRelativeDate,
 } from '../display/utils/formatting.js';
+import BaseSelector, {SelectorItem} from './BaseSelector.js';
 
 interface SessionSelectorProps {
 	onSubmit: (sessionId: string) => void;
@@ -15,7 +16,7 @@ interface SessionSelectorProps {
 	onCancel: () => void;
 }
 
-const VISIBLE_ITEM_COUNT = 10;
+interface SessionItem extends SelectorItem, SessionMetadata {}
 
 export default function SessionSelector({
 	onSubmit,
@@ -23,127 +24,65 @@ export default function SessionSelector({
 	onCancel,
 }: SessionSelectorProps) {
 	const [sessions, setSessions] = useState<SessionMetadata[]>([]);
-	const [selectedIndex, setSelectedIndex] = useState(0);
+
+	const loadSessions = () => {
+		const sessionManager = new SessionManager();
+		return sessionManager.listSessions();
+	};
 
 	useEffect(() => {
-		const sessionManager = new SessionManager();
-		const loadedSessions = sessionManager.listSessions();
-		setSessions(loadedSessions);
+		setSessions(loadSessions());
 	}, []);
 
-	const refreshSessions = () => {
-		const sessionManager = new SessionManager();
-		const loadedSessions = sessionManager.listSessions();
-		setSessions(loadedSessions);
-		if (selectedIndex >= loadedSessions.length && loadedSessions.length > 0) {
-			setSelectedIndex(loadedSessions.length - 1);
+	const handleDelete = (item: SessionItem) => {
+		if (onDelete) {
+			onDelete(item.id);
+			// Reload sessions after delete
+			setSessions(loadSessions());
 		}
 	};
 
-	useInput((input, key) => {
-		if (key.return) {
-			if (sessions.length > 0) {
-				onSubmit(sessions[selectedIndex].id);
-			}
-			return;
-		}
-
-		if (key.escape || (key.ctrl && input === 'c')) {
-			onCancel();
-			return;
-		}
-
-		if (input === 'd' || input === 'D') {
-			if (sessions.length > 0 && onDelete) {
-				const sessionToDelete = sessions[selectedIndex];
-				onDelete(sessionToDelete.id);
-				refreshSessions();
-			}
-			return;
-		}
-
-		if (key.upArrow) {
-			setSelectedIndex(prev => Math.max(0, prev - 1));
-		} else if (key.downArrow) {
-			setSelectedIndex(prev => Math.min(sessions.length - 1, prev + 1));
-		}
-	});
-
-	if (sessions.length === 0) {
-		return (
-			<Box flexDirection="column">
-				<Box marginBottom={1}>
-					<Text color="cyan" bold>
-						No Saved Sessions
-					</Text>
-				</Box>
-				<Text color="gray">Sessions are auto-saved when you use /new</Text>
-				<Box marginTop={1}>
-					<Text color="gray" dimColor>
-						Press ESC to close
-					</Text>
-				</Box>
-			</Box>
-		);
-	}
-
-	const halfVisible = Math.floor(VISIBLE_ITEM_COUNT / 2);
-	const startIndex = Math.max(0, selectedIndex - halfVisible);
-	const endIndex = Math.min(sessions.length, startIndex + VISIBLE_ITEM_COUNT);
-	const adjustedStart = Math.max(0, endIndex - VISIBLE_ITEM_COUNT);
-	const visibleSessions = sessions.slice(adjustedStart, endIndex);
+	const items: SessionItem[] = sessions.map(s => ({
+		...s,
+		label: s.name,
+	}));
 
 	return (
-		<Box flexDirection="column">
-			<Box marginBottom={1}>
-				<Text color="cyan" bold>
-					Select Session ({selectedIndex + 1}/{sessions.length})
-				</Text>
-			</Box>
-
-			<Box flexDirection="column">
-				{visibleSessions.map((session, index) => {
-					const actualIndex = adjustedStart + index;
-					const isSelected = actualIndex === selectedIndex;
-					return (
-						<Box key={session.id} flexDirection="column">
-							<Box>
-								<Text
-									color={isSelected ? 'black' : 'white'}
-									backgroundColor={isSelected ? 'cyan' : undefined}
-									bold={isSelected}
-								>
-									{isSelected ? '>' : ' '} {session.name}
-								</Text>
-							</Box>
-							{isSelected && (
-								<Box marginLeft={2}>
-									<Text color="gray" dimColor>
-										{formatRelativeDate(session.timestamp)} •{' '}
-										{session.messageCount} msgs •{' '}
-										{formatTokenCount(session.totalTokens)} tokens •{' '}
-										{session.provider}/{session.model}
-									</Text>
-								</Box>
-							)}
-						</Box>
-					);
-				})}
-			</Box>
-
-			{sessions.length > VISIBLE_ITEM_COUNT && (
-				<Box marginTop={1}>
-					<Text color="gray" dimColor>
-						↑/↓ to scroll
-					</Text>
-				</Box>
-			)}
-
-			<Box marginTop={1}>
+		<BaseSelector
+			items={items}
+			onSelect={(item) => onSubmit(item.id)}
+			onCancel={onCancel}
+			title="Select Session"
+			onDelete={onDelete ? handleDelete : undefined}
+			emptyMessage="No Saved Sessions. Sessions are auto-saved when you use /new."
+			footer={
 				<Text color="gray" dimColor>
 					↵ select • D delete • ESC cancel
 				</Text>
-			</Box>
-		</Box>
+			}
+			renderItem={(item, isSelected) => (
+				<Box flexDirection="column">
+					<Box>
+						<Text
+							color={isSelected ? 'black' : 'white'}
+							backgroundColor={isSelected ? 'cyan' : undefined}
+							bold={isSelected}
+						>
+							{isSelected ? '>' : ' '} {item.label}
+						</Text>
+					</Box>
+					{isSelected && (
+						<Box marginLeft={2}>
+							<Text color="gray" dimColor>
+								{formatRelativeDate(item.timestamp)} •{' '}
+								{item.messageCount} msgs •{' '}
+								{formatTokenCount(item.totalTokens)} tokens •{' '}
+								{item.provider}/{item.model}
+							</Text>
+						</Box>
+					)}
+				</Box>
+			)}
+		/>
 	);
 }
