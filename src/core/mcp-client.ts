@@ -63,6 +63,7 @@ export class MCPClient {
 				command: stdioConfig.command,
 				args: stdioConfig.args,
 				env: Object.keys(envVars).length > 0 ? envVars : undefined,
+				stderr: 'ignore',
 			});
 		}
 	}
