@@ -115,7 +115,7 @@ export default function MessageHistory({
 									case 'code-block':
 										if (highlighter && element.language) {
 											const tokens = highlighter.codeToTokens(element.content, {
-												lang: element.language || 'text',
+												lang: (element.language || 'text') as any,
 												theme: 'dark-plus',
 											});
 											const highlighted = tokens.tokens
