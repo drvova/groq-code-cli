@@ -4,7 +4,10 @@ import {
 	SessionManager,
 	SessionMetadata,
 } from '../../../utils/session-manager.js';
-import {formatTokenCount} from '../display/utils/formatting.js';
+import {
+	formatTokenCount,
+	formatRelativeDate,
+} from '../display/utils/formatting.js';
 
 interface SessionSelectorProps {
 	onSubmit: (sessionId: string) => void;
@@ -84,21 +87,6 @@ export default function SessionSelector({
 		);
 	}
 
-	const formatDate = (timestamp: number): string => {
-		const date = new Date(timestamp);
-		const now = new Date();
-		const diffMs = now.getTime() - date.getTime();
-		const diffMins = Math.floor(diffMs / 60000);
-		const diffHours = Math.floor(diffMs / 3600000);
-		const diffDays = Math.floor(diffMs / 86400000);
-
-		if (diffMins < 1) return 'just now';
-		if (diffMins < 60) return `${diffMins}m ago`;
-		if (diffHours < 24) return `${diffHours}h ago`;
-		if (diffDays < 7) return `${diffDays}d ago`;
-		return date.toLocaleDateString();
-	};
-
 	const halfVisible = Math.floor(VISIBLE_ITEM_COUNT / 2);
 	const startIndex = Math.max(0, selectedIndex - halfVisible);
 	const endIndex = Math.min(sessions.length, startIndex + VISIBLE_ITEM_COUNT);
@@ -131,8 +119,9 @@ export default function SessionSelector({
 							{isSelected && (
 								<Box marginLeft={2}>
 									<Text color="gray" dimColor>
-										{formatDate(session.timestamp)} • {session.messageCount}{' '}
-										msgs • {formatTokenCount(session.totalTokens)} tokens •{' '}
+										{formatRelativeDate(session.timestamp)} •{' '}
+										{session.messageCount} msgs •{' '}
+										{formatTokenCount(session.totalTokens)} tokens •{' '}
 										{session.provider}/{session.model}
 									</Text>
 								</Box>
