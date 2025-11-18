@@ -7,7 +7,6 @@ import {clearCommand} from './definitions/clear.js';
 import {initCommand} from './definitions/init.js';
 import {reasoningCommand} from './definitions/reasoning.js';
 import {statsCommand} from './definitions/stats.js';
-import {sessionsCommand} from './definitions/sessions.js';
 import {resumeCommand} from './definitions/resume.js';
 import {deleteCommand} from './definitions/delete.js';
 import {newCommand} from './definitions/new.js';
@@ -19,12 +18,11 @@ const availableCommands: CommandDefinition[] = [
 	providerCommand,
 	clearCommand,
 	newCommand,
+	resumeCommand,
+	deleteCommand,
 	initCommand,
 	reasoningCommand,
 	statsCommand,
-	sessionsCommand,
-	resumeCommand,
-	deleteCommand,
 ];
 
 export function getAvailableCommands(): CommandDefinition[] {
