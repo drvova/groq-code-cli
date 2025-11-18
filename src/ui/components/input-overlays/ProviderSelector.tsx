@@ -10,12 +10,31 @@ interface ProviderSelectorProps {
 }
 
 const FALLBACK_PROVIDERS: ProviderInfo[] = [
-	{id: 'groq', name: 'Groq', docUrl: 'https://console.groq.com/keys', envVars: ['GROQ_API_KEY'], modelCount: 0},
-	{id: 'moonshotai', name: 'Moonshot AI', docUrl: 'https://platform.moonshot.cn', envVars: ['MOONSHOT_API_KEY'], modelCount: 0},
+	{
+		id: 'groq',
+		name: 'Groq',
+		docUrl: 'https://console.groq.com/keys',
+		envVars: ['GROQ_API_KEY'],
+		modelCount: 0,
+	},
+	{
+		id: 'moonshotai',
+		name: 'Moonshot AI',
+		docUrl: 'https://platform.moonshot.cn',
+		envVars: ['MOONSHOT_API_KEY'],
+		modelCount: 0,
+	},
 ];
 
-export default function ProviderSelector({onSubmit, onCancel, currentProvider}: ProviderSelectorProps) {
-	const [providers, setProviders] = useState<ProviderInfo[]>(FALLBACK_PROVIDERS);
+const VISIBLE_ITEM_COUNT = 10;
+
+export default function ProviderSelector({
+	onSubmit,
+	onCancel,
+	currentProvider,
+}: ProviderSelectorProps) {
+	const [providers, setProviders] =
+		useState<ProviderInfo[]>(FALLBACK_PROVIDERS);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [selectedIndex, setSelectedIndex] = useState(0);
@@ -40,14 +59,18 @@ export default function ProviderSelector({onSubmit, onCancel, currentProvider}: 
 					updateSelectedIndex(fetchedProviders);
 				}
 			} catch (err) {
-				setError(err instanceof Error ? err.message : 'Failed to fetch providers');
+				setError(
+					err instanceof Error ? err.message : 'Failed to fetch providers',
+				);
 			} finally {
 				setLoading(false);
 			}
 		};
 
 		const updateSelectedIndex = (providerList: ProviderInfo[]) => {
-			const currentIndex = providerList.findIndex(p => p.id === currentProvider);
+			const currentIndex = providerList.findIndex(
+				p => p.id === currentProvider,
+			);
 			setSelectedIndex(currentIndex >= 0 ? currentIndex : 0);
 		};
 
@@ -82,10 +105,19 @@ export default function ProviderSelector({onSubmit, onCancel, currentProvider}: 
 		);
 	}
 
+	// Calculate visible window
+	const halfVisible = Math.floor(VISIBLE_ITEM_COUNT / 2);
+	const startIndex = Math.max(0, selectedIndex - halfVisible);
+	const endIndex = Math.min(providers.length, startIndex + VISIBLE_ITEM_COUNT);
+	const adjustedStart = Math.max(0, endIndex - VISIBLE_ITEM_COUNT);
+	const visibleProviders = providers.slice(adjustedStart, endIndex);
+
 	return (
 		<Box flexDirection="column">
 			<Box marginBottom={1}>
-				<Text color="cyan" bold>Select Provider</Text>
+				<Text color="cyan" bold>
+					Select Provider ({selectedIndex + 1}/{providers.length})
+				</Text>
 			</Box>
 
 			{error && (
@@ -95,19 +127,33 @@ export default function ProviderSelector({onSubmit, onCancel, currentProvider}: 
 			)}
 
 			<Box flexDirection="column">
-				{providers.map((provider, index) => (
-					<Box key={provider.id}>
-						<Text
-							color={index === selectedIndex ? 'black' : 'white'}
-							backgroundColor={index === selectedIndex ? 'cyan' : undefined}
-							bold={index === selectedIndex}
-						>
-							{index === selectedIndex ? '>' : ' '} {provider.name} ({provider.modelCount} models)
-							{provider.id === currentProvider ? ' [current]' : ''}
-						</Text>
-					</Box>
-				))}
+				{visibleProviders.map((provider, index) => {
+					const actualIndex = adjustedStart + index;
+					return (
+						<Box key={provider.id}>
+							<Text
+								color={actualIndex === selectedIndex ? 'black' : 'white'}
+								backgroundColor={
+									actualIndex === selectedIndex ? 'cyan' : undefined
+								}
+								bold={actualIndex === selectedIndex}
+							>
+								{actualIndex === selectedIndex ? '>' : ' '} {provider.name} (
+								{provider.modelCount} models)
+								{provider.id === currentProvider ? ' [current]' : ''}
+							</Text>
+						</Box>
+					);
+				})}
 			</Box>
+
+			{providers.length > VISIBLE_ITEM_COUNT && (
+				<Box marginTop={1}>
+					<Text color="gray" dimColor>
+						↑/↓ to scroll
+					</Text>
+				</Box>
+			)}
 		</Box>
 	);
 }

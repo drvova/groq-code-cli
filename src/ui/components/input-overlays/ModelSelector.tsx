@@ -42,6 +42,8 @@ const FALLBACK_MODELS: ModelInfo[] = [
 	},
 ];
 
+const VISIBLE_ITEM_COUNT = 10;
+
 export default function ModelSelector({
 	onSubmit,
 	onCancel,
@@ -127,11 +129,18 @@ export default function ModelSelector({
 		);
 	}
 
+	// Calculate visible window
+	const halfVisible = Math.floor(VISIBLE_ITEM_COUNT / 2);
+	const startIndex = Math.max(0, selectedIndex - halfVisible);
+	const endIndex = Math.min(models.length, startIndex + VISIBLE_ITEM_COUNT);
+	const adjustedStart = Math.max(0, endIndex - VISIBLE_ITEM_COUNT);
+	const visibleModels = models.slice(adjustedStart, endIndex);
+
 	return (
 		<Box flexDirection="column">
 			<Box marginBottom={1}>
 				<Text color="cyan" bold>
-					Select Model
+					Select Model ({selectedIndex + 1}/{models.length})
 				</Text>
 			</Box>
 
@@ -142,19 +151,32 @@ export default function ModelSelector({
 			)}
 
 			<Box flexDirection="column">
-				{models.map((model, index) => (
-					<Box key={model.id}>
-						<Text
-							color={index === selectedIndex ? 'black' : 'white'}
-							backgroundColor={index === selectedIndex ? 'cyan' : undefined}
-							bold={index === selectedIndex}
-						>
-							{index === selectedIndex ? '>' : ' '} {model.name}
-							{model.id === currentModel ? ' [current]' : ''}
-						</Text>
-					</Box>
-				))}
+				{visibleModels.map((model, index) => {
+					const actualIndex = adjustedStart + index;
+					return (
+						<Box key={model.id}>
+							<Text
+								color={actualIndex === selectedIndex ? 'black' : 'white'}
+								backgroundColor={
+									actualIndex === selectedIndex ? 'cyan' : undefined
+								}
+								bold={actualIndex === selectedIndex}
+							>
+								{actualIndex === selectedIndex ? '>' : ' '} {model.name}
+								{model.id === currentModel ? ' [current]' : ''}
+							</Text>
+						</Box>
+					);
+				})}
 			</Box>
+
+			{models.length > VISIBLE_ITEM_COUNT && (
+				<Box marginTop={1}>
+					<Text color="gray" dimColor>
+						↑/↓ to scroll
+					</Text>
+				</Box>
+			)}
 		</Box>
 	);
 }
