@@ -11,6 +11,7 @@ import {sessionsCommand} from './definitions/sessions.js';
 import {resumeCommand} from './definitions/resume.js';
 import {saveCommand} from './definitions/save.js';
 import {deleteCommand} from './definitions/delete.js';
+import {newCommand} from './definitions/new.js';
 
 const availableCommands: CommandDefinition[] = [
 	helpCommand,
@@ -18,6 +19,7 @@ const availableCommands: CommandDefinition[] = [
 	modelCommand,
 	providerCommand,
 	clearCommand,
+	newCommand,
 	initCommand,
 	reasoningCommand,
 	statsCommand,

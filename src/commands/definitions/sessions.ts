@@ -11,7 +11,8 @@ export const sessionsCommand: CommandDefinition = {
 		if (sessions.length === 0) {
 			addMessage({
 				role: 'system',
-				content: 'No saved sessions found.\n\nUse `/save <name>` to save the current conversation.',
+				content:
+					'No saved sessions found.\n\nUse `/save <name>` to save the current conversation.',
 			});
 			return;
 		}
@@ -42,11 +43,14 @@ export const sessionsCommand: CommandDefinition = {
 			content += `**${index + 1}. ${session.name}**\n`;
 			content += `   ID: \`${session.id}\`\n`;
 			content += `   Time: ${formatDate(session.timestamp)}\n`;
-			content += `   Messages: ${session.messageCount} | Tokens: ${formatTokens(session.totalTokens)}\n`;
+			content += `   Messages: ${session.messageCount} | Tokens: ${formatTokens(
+				session.totalTokens,
+			)}\n`;
 			content += `   Model: ${session.provider}/${session.model}\n\n`;
 		});
 
 		content += '\n**Commands:**\n';
+		content += '- `/new` - Start a new session (auto-saves current)\n';
 		content += '- `/resume <name|id>` - Resume a session\n';
 		content += '- `/save <name>` - Save current conversation\n';
 		content += '- `/delete <name|id>` - Delete a session\n';
