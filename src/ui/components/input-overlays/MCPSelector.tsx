@@ -100,12 +100,15 @@ const POPULAR_SERVERS: PopularServer[] = [
 	},
 ];
 
-type ViewMode = 'menu' | 'list' | 'add' | 'browse';
+type ViewMode = 'menu' | 'list' | 'add' | 'browse' | 'tools';
 
 export default function MCPSelector({onCancel, onRefresh}: MCPSelectorProps) {
 	const [servers, setServers] = useState<ServerListItem[]>([]);
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [mode, setMode] = useState<ViewMode>('menu');
+	const [viewingServerTools, setViewingServerTools] = useState<string | null>(
+		null,
+	);
 	const [addServerType, setAddServerType] = useState<'stdio' | 'http'>('stdio');
 	const [addServerName, setAddServerName] = useState('');
 	const [addServerCommand, setAddServerCommand] = useState('');
@@ -152,6 +155,8 @@ export default function MCPSelector({onCancel, onRefresh}: MCPSelectorProps) {
 			handleAddInput(input, key);
 		} else if (mode === 'browse') {
 			handleBrowseInput(input, key);
+		} else if (mode === 'tools') {
+			handleToolsInput(input, key);
 		} else {
 			handleListInput(input, key);
 		}
@@ -258,6 +263,23 @@ export default function MCPSelector({onCancel, onRefresh}: MCPSelectorProps) {
 				.catch(() => {
 					loadServers();
 				});
+		}
+
+		// View server tools with 'v'
+		if (input === 'v' && selectedIndex < servers.length) {
+			const server = servers[selectedIndex];
+			if (server.connected && server.toolCount > 0) {
+				setViewingServerTools(server.name);
+				setMode('tools');
+			}
+		}
+	};
+
+	const handleToolsInput = (input: string, key: any) => {
+		if (key.escape || (key.ctrl && input === 'c')) {
+			setViewingServerTools(null);
+			setMode('list');
+			return;
 		}
 	};
 
@@ -412,6 +434,52 @@ export default function MCPSelector({onCancel, onRefresh}: MCPSelectorProps) {
 			}
 		}
 	};
+
+	// Tools view
+	if (mode === 'tools' && viewingServerTools) {
+		const mcpManager = MCPManager.getInstance();
+		const allTools = mcpManager.getAllTools();
+		const serverTools = allTools.filter(
+			t => t.serverName === viewingServerTools,
+		);
+
+		return (
+			<Box flexDirection="column" paddingX={2} paddingY={1}>
+				<Box marginBottom={1}>
+					<Text bold color="cyan">
+						Tools: {viewingServerTools}
+					</Text>
+				</Box>
+
+				<Box marginBottom={1}>
+					<Text dimColor>ESC to go back</Text>
+				</Box>
+
+				<Box flexDirection="column">
+					{serverTools.map((tool, idx) => (
+						<Box key={idx} marginBottom={1} flexDirection="column">
+							<Box>
+								<Text bold color="green">
+									{tool.prefixedName}
+								</Text>
+							</Box>
+							{tool.description && (
+								<Box marginLeft={2}>
+									<Text dimColor>{tool.description}</Text>
+								</Box>
+							)}
+						</Box>
+					))}
+				</Box>
+
+				{serverTools.length === 0 && (
+					<Box>
+						<Text color="yellow">No tools available</Text>
+					</Box>
+				)}
+			</Box>
+		);
+	}
 
 	// Menu view
 	if (mode === 'menu') {
@@ -669,7 +737,8 @@ export default function MCPSelector({onCancel, onRefresh}: MCPSelectorProps) {
 
 			<Box marginBottom={1}>
 				<Text dimColor>
-					↑/↓ Navigate • Enter Add • t Toggle • d Delete • r Restart • ESC Back
+					↑/↓ Navigate • Enter Add • v View Tools • t Toggle • d Delete • r
+					Restart • ESC Back
 				</Text>
 			</Box>
 
