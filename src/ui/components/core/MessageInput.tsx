@@ -39,6 +39,11 @@ export default function MessageInput({
 	}, [value]);
 
 	useInput((input, key) => {
+		// Let Page Up/Down pass through to Chat component for scrolling
+		if (key.pageUp || key.pageDown) {
+			return;
+		}
+
 		if (key.return) {
 			if (isSlashCommand) {
 				// Auto-complete to selected command
