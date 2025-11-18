@@ -1,10 +1,15 @@
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
+import {SSEClientTransport} from '@modelcontextprotocol/sdk/client/sse.js';
 import {
 	CallToolResultSchema,
 	ListToolsResultSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import {MCPServerConfig} from '../utils/local-settings.js';
+import {
+	MCPServerConfig,
+	MCPServerConfigStdio,
+	MCPServerConfigHTTP,
+} from '../utils/local-settings.js';
 
 export interface MCPTool {
 	name: string;
@@ -19,7 +24,7 @@ export interface MCPToolResult {
 
 export class MCPClient {
 	private client: Client;
-	private transport: StdioClientTransport;
+	private transport: StdioClientTransport | SSEClientTransport;
 	private serverName: string;
 	private config: MCPServerConfig;
 	private isConnected: boolean = false;
@@ -38,20 +43,28 @@ export class MCPClient {
 			},
 		);
 
-		const envVars: Record<string, string> = {};
-		if (config.env) {
-			Object.entries(config.env).forEach(([key, value]) => {
-				if (value !== undefined) {
-					envVars[key] = value;
-				}
+		if (config.type === 'http') {
+			// HTTP/SSE transport
+			const httpConfig = config as MCPServerConfigHTTP;
+			this.transport = new SSEClientTransport(new URL(httpConfig.url));
+		} else {
+			// Stdio transport
+			const stdioConfig = config as MCPServerConfigStdio;
+			const envVars: Record<string, string> = {};
+			if (stdioConfig.env) {
+				Object.entries(stdioConfig.env).forEach(([key, value]) => {
+					if (value !== undefined) {
+						envVars[key] = value;
+					}
+				});
+			}
+
+			this.transport = new StdioClientTransport({
+				command: stdioConfig.command,
+				args: stdioConfig.args,
+				env: Object.keys(envVars).length > 0 ? envVars : undefined,
 			});
 		}
-
-		this.transport = new StdioClientTransport({
-			command: config.command,
-			args: config.args,
-			env: Object.keys(envVars).length > 0 ? envVars : undefined,
-		});
 	}
 
 	async connect(): Promise<void> {

@@ -3,13 +3,29 @@ import * as path from 'path';
 import * as os from 'os';
 import {ModelInfo, ProviderInfo} from './models-api';
 
-export interface MCPServerConfig {
-	command: string;
-	args: string[];
-	env?: Record<string, string>;
+export type MCPTransportType = 'stdio' | 'http';
+
+export interface MCPServerConfigBase {
+	type: MCPTransportType;
 	disabled?: boolean;
 	toolPrefix?: string; // Optional prefix for tool names (e.g., 'brave' -> 'brave:web_search')
 }
+
+export interface MCPServerConfigStdio extends MCPServerConfigBase {
+	type: 'stdio';
+	command: string;
+	args: string[];
+	env?: Record<string, string>;
+}
+
+export interface MCPServerConfigHTTP extends MCPServerConfigBase {
+	type: 'http';
+	url: string;
+	headers?: Record<string, string>;
+	apiKey?: string;
+}
+
+export type MCPServerConfig = MCPServerConfigStdio | MCPServerConfigHTTP;
 
 interface Config {
 	groqApiKey?: string; // Legacy - migrated to providers
