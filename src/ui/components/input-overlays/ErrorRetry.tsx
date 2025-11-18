@@ -9,7 +9,7 @@ interface ErrorRetryProps {
 
 export default function ErrorRetry({ error, onRetry, onCancel }: ErrorRetryProps) {
   return (
-    <Box flexDirection="column" borderStyle="classic" borderColor="red" paddingX={1} paddingY={1}>
+    <Box flexDirection="column" backgroundColor="red" paddingX={1} paddingY={1}>
       <Box marginBottom={1}>
         <Text color="red" bold>
           ❌ An error occurred:

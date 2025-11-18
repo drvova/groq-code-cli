@@ -246,7 +246,7 @@ export default function Chat({agent}: ChatProps) {
 			/>
 
 			{/* Input area */}
-			<Box borderStyle="classic" borderColor="white" paddingX={1}>
+			<Box backgroundColor="gray" paddingX={1}>
 				{pendingApproval ? (
 					<PendingToolApproval
 						toolName={pendingApproval.toolName}
