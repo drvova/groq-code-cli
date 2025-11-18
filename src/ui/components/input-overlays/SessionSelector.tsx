@@ -73,9 +73,7 @@ export default function SessionSelector({
 						No Saved Sessions
 					</Text>
 				</Box>
-				<Text color="gray">
-					Sessions are auto-saved when you use /new or /clear
-				</Text>
+				<Text color="gray">Sessions are auto-saved when you use /new</Text>
 				<Box marginTop={1}>
 					<Text color="gray" dimColor>
 						Press ESC to close

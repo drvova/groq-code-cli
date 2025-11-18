@@ -24,7 +24,7 @@ export const resumeCommand: CommandDefinition = {
 				addMessage({
 					role: 'system',
 					content:
-						'No saved sessions found.\n\nSessions are auto-saved when you use `/new` or `/clear`.',
+						'No saved sessions found.\n\nSessions are auto-saved when you use `/new`.',
 				});
 				return;
 			}
@@ -63,9 +63,7 @@ export const resumeCommand: CommandDefinition = {
 
 			content += '\n**Commands:**\n';
 			content += '- `/resume <name|id>` - Resume a specific session\n';
-			content += '- `/delete <name|id>` - Delete a session\n';
-			content += '- `/new` - Start new (auto-saves current)\n';
-			content += '- `/clear` - Clear chat (auto-saves current)\n';
+			content += '- `/new` - Start new session (auto-saves current)\n';
 
 			addMessage({
 				role: 'system',
