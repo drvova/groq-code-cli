@@ -16,13 +16,70 @@ interface ServerListItem {
 	error?: string;
 }
 
-export default function MCPSelector({
-	onCancel,
-	onRefresh,
-}: MCPSelectorProps) {
+interface PopularServer {
+	name: string;
+	package: string;
+	description: string;
+	command: string;
+	args: string[];
+	prefix: string;
+	requiresConfig?: string;
+}
+
+const POPULAR_SERVERS: PopularServer[] = [
+	{
+		name: 'Brave Search',
+		package: '@modelcontextprotocol/server-brave-search',
+		description: 'Web search powered by Brave Search API',
+		command: 'npx',
+		args: ['-y', '@modelcontextprotocol/server-brave-search'],
+		prefix: 'brave',
+		requiresConfig: 'Requires BRAVE_API_KEY environment variable',
+	},
+	{
+		name: 'Filesystem',
+		package: '@modelcontextprotocol/server-filesystem',
+		description: 'Read and write files in allowed directories',
+		command: 'npx',
+		args: ['-y', '@modelcontextprotocol/server-filesystem'],
+		prefix: 'fs',
+		requiresConfig: 'Add directory path to args',
+	},
+	{
+		name: 'GitHub',
+		package: '@modelcontextprotocol/server-github',
+		description: 'Interact with GitHub repositories and issues',
+		command: 'npx',
+		args: ['-y', '@modelcontextprotocol/server-github'],
+		prefix: 'github',
+		requiresConfig: 'Requires GITHUB_TOKEN environment variable',
+	},
+	{
+		name: 'PostgreSQL',
+		package: '@modelcontextprotocol/server-postgres',
+		description: 'Query and manage PostgreSQL databases',
+		command: 'npx',
+		args: ['-y', '@modelcontextprotocol/server-postgres'],
+		prefix: 'pg',
+		requiresConfig: 'Requires DATABASE_URL environment variable',
+	},
+	{
+		name: 'SQLite',
+		package: '@modelcontextprotocol/server-sqlite',
+		description: 'Query and manage SQLite databases',
+		command: 'npx',
+		args: ['-y', '@modelcontextprotocol/server-sqlite'],
+		prefix: 'sqlite',
+		requiresConfig: 'Add database path to args',
+	},
+];
+
+type ViewMode = 'menu' | 'list' | 'add' | 'browse';
+
+export default function MCPSelector({onCancel, onRefresh}: MCPSelectorProps) {
 	const [servers, setServers] = useState<ServerListItem[]>([]);
 	const [selectedIndex, setSelectedIndex] = useState(0);
-	const [mode, setMode] = useState<'list' | 'add'>('list');
+	const [mode, setMode] = useState<ViewMode>('menu');
 	const [addServerName, setAddServerName] = useState('');
 	const [addServerCommand, setAddServerCommand] = useState('');
 	const [addServerArgs, setAddServerArgs] = useState('');
@@ -58,16 +115,54 @@ export default function MCPSelector({
 	}, []);
 
 	useInput((input, key) => {
-		if (mode === 'add') {
+		if (mode === 'menu') {
+			handleMenuInput(input, key);
+		} else if (mode === 'add') {
 			handleAddInput(input, key);
+		} else if (mode === 'browse') {
+			handleBrowseInput(input, key);
 		} else {
 			handleListInput(input, key);
 		}
 	});
 
-	const handleListInput = (input: string, key: any) => {
+	const handleMenuInput = (input: string, key: any) => {
 		if (key.escape || (key.ctrl && input === 'c')) {
 			onCancel();
+			return;
+		}
+
+		if (key.upArrow) {
+			setSelectedIndex(prev => Math.max(0, prev - 1));
+		} else if (key.downArrow) {
+			setSelectedIndex(prev => Math.min(2, prev + 1));
+		}
+
+		if (key.return) {
+			if (selectedIndex === 0) {
+				// Manage existing servers
+				setMode('list');
+				setSelectedIndex(0);
+			} else if (selectedIndex === 1) {
+				// Add custom server
+				setMode('add');
+				setAddInputStep('name');
+				setAddServerName('');
+				setAddServerCommand('');
+				setAddServerArgs('');
+				setAddServerPrefix('');
+			} else if (selectedIndex === 2) {
+				// Browse popular servers
+				setMode('browse');
+				setSelectedIndex(0);
+			}
+		}
+	};
+
+	const handleListInput = (input: string, key: any) => {
+		if (key.escape || (key.ctrl && input === 'c')) {
+			setMode('menu');
+			setSelectedIndex(0);
 			return;
 		}
 
@@ -119,18 +214,61 @@ export default function MCPSelector({
 			const server = servers[selectedIndex];
 			const mcpManager = MCPManager.getInstance();
 
-			mcpManager.restartServer(server.name).then(() => {
-				loadServers();
-				if (onRefresh) onRefresh();
-			}).catch(() => {
-				loadServers();
-			});
+			mcpManager
+				.restartServer(server.name)
+				.then(() => {
+					loadServers();
+					if (onRefresh) onRefresh();
+				})
+				.catch(() => {
+					loadServers();
+				});
+		}
+	};
+
+	const handleBrowseInput = (input: string, key: any) => {
+		if (key.escape || (key.ctrl && input === 'c')) {
+			setMode('menu');
+			setSelectedIndex(0);
+			return;
+		}
+
+		if (key.upArrow) {
+			setSelectedIndex(prev => Math.max(0, prev - 1));
+		} else if (key.downArrow) {
+			setSelectedIndex(prev => Math.min(POPULAR_SERVERS.length - 1, prev + 1));
+		}
+
+		if (key.return) {
+			// Quick install selected popular server
+			const server = POPULAR_SERVERS[selectedIndex];
+			const configManager = new ConfigManager();
+			const mcpManager = MCPManager.getInstance();
+
+			const serverName =
+				server.prefix || server.name.toLowerCase().replace(/\s+/g, '-');
+
+			const serverConfig: MCPServerConfig = {
+				command: server.command,
+				args: server.args,
+				toolPrefix: server.prefix,
+			};
+
+			configManager.setMCPServer(serverName, serverConfig);
+
+			// Try to start the server
+			mcpManager.startServer(serverName, serverConfig).catch(() => {});
+
+			setMode('list');
+			loadServers();
+			if (onRefresh) onRefresh();
 		}
 	};
 
 	const handleAddInput = (input: string, key: any) => {
 		if (key.escape) {
-			setMode('list');
+			setMode('menu');
+			setSelectedIndex(0);
 			return;
 		}
 
@@ -160,7 +298,9 @@ export default function MCPSelector({
 				configManager.setMCPServer(addServerName.trim(), serverConfig);
 
 				// Try to start the server
-				mcpManager.startServer(addServerName.trim(), serverConfig).catch(() => {});
+				mcpManager
+					.startServer(addServerName.trim(), serverConfig)
+					.catch(() => {});
 
 				setMode('list');
 				loadServers();
@@ -195,17 +335,128 @@ export default function MCPSelector({
 		}
 	};
 
+	// Menu view
+	if (mode === 'menu') {
+		const hasServers = servers.length > 0;
+
+		return (
+			<Box flexDirection="column" paddingX={2} paddingY={1}>
+				<Box marginBottom={1}>
+					<Text bold color="cyan">
+						MCP Server Management
+					</Text>
+				</Box>
+
+				<Box marginBottom={1}>
+					<Text dimColor>
+						Select an option (↑/↓ to navigate, Enter to select, ESC to exit)
+					</Text>
+				</Box>
+
+				<Box marginBottom={1}>
+					<Text>
+						{selectedIndex === 0 ? (
+							<Text color="cyan" bold>
+								→ Manage existing servers ({servers.length})
+							</Text>
+						) : (
+							<Text dimColor={!hasServers}>
+								Manage existing servers ({servers.length})
+							</Text>
+						)}
+					</Text>
+				</Box>
+
+				<Box marginBottom={1}>
+					<Text>
+						{selectedIndex === 1 ? (
+							<Text color="cyan" bold>
+								→ Add custom server
+							</Text>
+						) : (
+							<Text> Add custom server</Text>
+						)}
+					</Text>
+				</Box>
+
+				<Box marginBottom={1}>
+					<Text>
+						{selectedIndex === 2 ? (
+							<Text color="cyan" bold>
+								→ Browse popular servers
+							</Text>
+						) : (
+							<Text> Browse popular servers</Text>
+						)}
+					</Text>
+				</Box>
+			</Box>
+		);
+	}
+
+	// Browse popular servers view
+	if (mode === 'browse') {
+		return (
+			<Box flexDirection="column" paddingX={2} paddingY={1}>
+				<Box marginBottom={1}>
+					<Text bold color="cyan">
+						Popular MCP Servers
+					</Text>
+				</Box>
+
+				<Box marginBottom={1}>
+					<Text dimColor>↑/↓ Navigate • Enter Quick Install • ESC Back</Text>
+				</Box>
+
+				<Box flexDirection="column">
+					{POPULAR_SERVERS.map((server, index) => (
+						<Box key={server.package} flexDirection="column" marginBottom={1}>
+							<Text>
+								{selectedIndex === index ? (
+									<Text color="cyan" bold>
+										→ {server.name}
+									</Text>
+								) : (
+									<Text> {server.name}</Text>
+								)}
+							</Text>
+							{selectedIndex === index && (
+								<Box flexDirection="column" marginLeft={3}>
+									<Text dimColor>{server.description}</Text>
+									<Text dimColor>Package: {server.package}</Text>
+									{server.requiresConfig && (
+										<Text color="yellow" dimColor>
+											⚠ {server.requiresConfig}
+										</Text>
+									)}
+								</Box>
+							)}
+						</Box>
+					))}
+				</Box>
+
+				<Box marginTop={1}>
+					<Text dimColor>
+						Press Enter to quick-install (uses npx, no prior installation
+						needed)
+					</Text>
+				</Box>
+			</Box>
+		);
+	}
+
+	// Add server view
 	if (mode === 'add') {
 		return (
 			<Box flexDirection="column" paddingX={2} paddingY={1}>
 				<Box marginBottom={1}>
 					<Text bold color="cyan">
-						Add MCP Server
+						Add Custom MCP Server
 					</Text>
 				</Box>
 
 				<Box marginBottom={1}>
-					<Text dimColor>Press ESC to cancel</Text>
+					<Text dimColor>Press ESC to go back</Text>
 				</Box>
 
 				<Box marginBottom={1}>
@@ -247,7 +498,8 @@ export default function MCPSelector({
 
 				<Box marginTop={1}>
 					<Text dimColor>
-						{addInputStep === 'name' && 'Enter server name (e.g., "brave-search")'}
+						{addInputStep === 'name' &&
+							'Enter server name (e.g., "brave-search")'}
 						{addInputStep === 'command' && 'Enter command (e.g., "npx")'}
 						{addInputStep === 'args' &&
 							'Enter arguments (e.g., "-y @modelcontextprotocol/server-brave-search")'}
@@ -259,17 +511,18 @@ export default function MCPSelector({
 		);
 	}
 
+	// List/manage servers view
 	return (
 		<Box flexDirection="column" paddingX={2} paddingY={1}>
 			<Box marginBottom={1}>
 				<Text bold color="cyan">
-					MCP Servers
+					Manage MCP Servers
 				</Text>
 			</Box>
 
 			<Box marginBottom={1}>
 				<Text dimColor>
-					↑/↓ Navigate • Enter Add • t Toggle • d Delete • r Restart • ESC Exit
+					↑/↓ Navigate • Enter Add • t Toggle • d Delete • r Restart • ESC Back
 				</Text>
 			</Box>
 
@@ -287,14 +540,12 @@ export default function MCPSelector({
 										→{' '}
 									</Text>
 								) : (
-									<Text>  </Text>
+									<Text> </Text>
 								)}
 								<Text bold color={server.config.disabled ? 'gray' : 'white'}>
 									{server.name}
 								</Text>
-								{server.config.disabled && (
-									<Text dimColor> (disabled)</Text>
-								)}
+								{server.config.disabled && <Text dimColor> (disabled)</Text>}
 								{!server.config.disabled && server.connected && (
 									<Text color="green"> ✓ {server.toolCount} tools</Text>
 								)}
@@ -317,10 +568,10 @@ export default function MCPSelector({
 				<Text>
 					{selectedIndex === servers.length ? (
 						<Text color="cyan" bold>
-							→ Add new server
+							→ Add new custom server
 						</Text>
 					) : (
-						<Text dimColor>  Add new server</Text>
+						<Text dimColor> Add new custom server</Text>
 					)}
 				</Text>
 			</Box>
