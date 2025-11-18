@@ -198,8 +198,8 @@ export default function Chat({agent}: ChatProps) {
 		// Save API key for the selected provider
 		configManager.setProviderApiKey(selectedProvider, apiKey);
 
-		// Also save via agent for backward compatibility
-		agent.saveApiKey(apiKey);
+		// Reset agent client to force re-initialization with new key
+		agent.clearApiKey();
 
 		addMessage({
 			role: 'system',
