@@ -116,9 +116,12 @@ export default function MCPSelector({onCancel, onRefresh}: MCPSelectorProps) {
 		'type' | 'name' | 'command' | 'args' | 'url' | 'prefix'
 	>('type');
 
-	const loadServers = () => {
+	const loadServers = async () => {
 		const configManager = new ConfigManager();
 		const mcpManager = MCPManager.getInstance();
+
+		await mcpManager.initializeServers();
+
 		const serverConfigs = configManager.getMCPServers();
 		const statuses = mcpManager.getServerStatus();
 
