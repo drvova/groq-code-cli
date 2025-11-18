@@ -45,10 +45,15 @@ async function startChat(
 	const maxLineLength = Math.max(...logoLines.map(line => line.length));
 	const padding = Math.max(0, Math.floor((terminalWidth - maxLineLength) / 2));
 	const centeredLogo = logoLines
-		.map(line => ' '.repeat(padding) + line)
+		.map(line => {
+			if (line.trim()) {
+				return ' '.repeat(padding) + chalk.cyan.bgHex('#0a0e14')(line);
+			}
+			return line;
+		})
 		.join('\n');
 
-	console.log(chalk.cyan.bgHex('#0a0e14')(centeredLogo));
+	console.log(centeredLogo);
 
 	let defaultModel = 'moonshotai/kimi-k2-instruct';
 
