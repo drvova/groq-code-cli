@@ -1,5 +1,6 @@
 import Groq from 'groq-sdk';
 import type {ClientOptions} from 'groq-sdk';
+import OpenAI from 'openai';
 import {executeTool} from '../tools/tools.js';
 import {
 	validateReadBeforeEdit,
@@ -12,6 +13,7 @@ import {
 } from '../tools/tool-schemas.js';
 import {ConfigManager} from '../utils/local-settings.js';
 import {getProxyAgent, getProxyInfo} from '../utils/proxy-config.js';
+import {fetchProviders} from '../utils/models-api.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -23,7 +25,7 @@ interface Message {
 }
 
 export class Agent {
-	private client: Groq | null = null;
+	private client: Groq | OpenAI | null = null;
 	private messages: Message[] = [];
 	private apiKey: string | null = null;
 	private model: string;
@@ -32,6 +34,7 @@ export class Agent {
 	private systemMessage: string;
 	private configManager: ConfigManager;
 	private proxyOverride?: string;
+	private currentProvider: string = 'groq';
 	private onToolStart?: (name: string, args: Record<string, any>) => void;
 	private onToolEnd?: (name: string, result: any) => void;
 	private onToolApproval?: (
@@ -211,7 +214,7 @@ When asked about your identity, you should identify yourself as a coding assista
 		this.onError = callbacks.onError;
 	}
 
-	public setApiKey(apiKey: string): void {
+	public async setApiKey(apiKey: string): Promise<void> {
 		debugLog('Setting API key in agent...');
 		debugLog(
 			'API key provided:',
@@ -227,22 +230,72 @@ When asked about your identity, you should identify yourself as a coding assista
 			debugLog(`Using ${proxyInfo.type} proxy: ${proxyInfo.url}`);
 		}
 
-		// Initialize Groq client with proxy if available
-		const clientOptions: ClientOptions = {apiKey};
-		if (proxyAgent) {
-			clientOptions.httpAgent = proxyAgent;
-		}
+		// Initialize client based on selected provider
+		this.currentProvider = this.configManager.getSelectedProvider() || 'groq';
 
-		this.client = new Groq(clientOptions);
-		debugLog(
-			'Groq client initialized with provided API key' +
-				(proxyInfo.enabled ? ' and proxy' : ''),
-		);
+		if (this.currentProvider === 'groq') {
+			// Use Groq SDK for Groq provider
+			const clientOptions: ClientOptions = {apiKey};
+			if (proxyAgent) {
+				clientOptions.httpAgent = proxyAgent;
+			}
+			this.client = new Groq(clientOptions);
+			debugLog(
+				'Groq client initialized with provided API key' +
+					(proxyInfo.enabled ? ' and proxy' : ''),
+			);
+		} else {
+			// Use OpenAI-compatible client for other providers
+			await this.initializeOpenAICompatibleClient(apiKey, proxyAgent);
+		}
 	}
 
-	public saveApiKey(apiKey: string): void {
+	private async initializeOpenAICompatibleClient(
+		apiKey: string,
+		proxyAgent: any,
+	): Promise<void> {
+		try {
+			// Fetch provider info to get base URL
+			const configManager = new ConfigManager();
+			let cachedProviders = configManager.getCachedProviders();
+
+			if (!cachedProviders) {
+				cachedProviders = await fetchProviders();
+				configManager.setCachedProviders(cachedProviders);
+			}
+
+			const providerInfo = cachedProviders.find(
+				p => p.id === this.currentProvider,
+			);
+
+			if (providerInfo?.apiBaseUrl) {
+				const clientOptions: any = {
+					apiKey,
+					baseURL: providerInfo.apiBaseUrl,
+				};
+				if (proxyAgent) {
+					clientOptions.httpAgent = proxyAgent;
+				}
+				this.client = new OpenAI(clientOptions);
+				debugLog(
+					`OpenAI-compatible client initialized for provider: ${this.currentProvider} with baseURL: ${providerInfo.apiBaseUrl}`,
+				);
+			} else {
+				throw new Error(
+					`Provider ${this.currentProvider} not found or missing API base URL`,
+				);
+			}
+		} catch (error) {
+			debugLog(`Failed to initialize OpenAI-compatible client: ${error}`);
+			throw new Error(
+				`Failed to initialize client for provider ${this.currentProvider}: ${error}`,
+			);
+		}
+	}
+
+	public async saveApiKey(apiKey: string): Promise<void> {
 		this.configManager.setApiKey(apiKey);
-		this.setApiKey(apiKey);
+		await this.setApiKey(apiKey);
 	}
 
 	public clearApiKey(): void {
@@ -302,12 +355,12 @@ When asked about your identity, you should identify yourself as a coding assista
 
 		// Check API key on first message send
 		if (!this.client) {
-			debugLog('Initializing Groq client...');
+			debugLog('Initializing client...');
 			// Try environment variable first
 			const envApiKey = process.env.GROQ_API_KEY;
 			if (envApiKey) {
 				debugLog('Using API key from environment variable');
-				this.setApiKey(envApiKey);
+				await this.setApiKey(envApiKey);
 			} else {
 				// Try provider-specific config first
 				debugLog(
@@ -322,13 +375,13 @@ When asked about your identity, you should identify yourself as a coding assista
 					debugLog(
 						`Using API key from config for provider: ${selectedProvider}`,
 					);
-					this.setApiKey(providerApiKey);
+					await this.setApiKey(providerApiKey);
 				} else {
 					// Fallback to legacy groqApiKey field
 					const legacyApiKey = this.configManager.getApiKey();
 					if (legacyApiKey) {
 						debugLog('Using API key from legacy groqApiKey field');
-						this.setApiKey(legacyApiKey);
+						await this.setApiKey(legacyApiKey);
 					} else {
 						debugLog('No API key found anywhere');
 						throw new Error(
@@ -337,7 +390,7 @@ When asked about your identity, you should identify yourself as a coding assista
 					}
 				}
 			}
-			debugLog('Groq client initialized successfully');
+			debugLog('Client initialized successfully');
 		}
 
 		// Add user message
@@ -391,7 +444,7 @@ When asked about your identity, you should identify yourself as a coding assista
 					// Create AbortController for this request
 					this.currentAbortController = new AbortController();
 
-					const response = await this.client.chat.completions.create(
+					const response = await (this.client as any).chat.completions.create(
 						{
 							model: this.model,
 							messages: this.messages as any,
