@@ -3,12 +3,21 @@ import {SessionManager} from '../../utils/session-manager.js';
 
 export const resumeCommand: CommandDefinition = {
 	command: 'resume',
-	description: 'List saved sessions or resume a specific one',
-	handler: ({addMessage}: CommandContext, args?: string) => {
+	description: 'Interactive session picker or resume by name',
+	handler: (
+		{addMessage, setShowSessionSelector}: CommandContext,
+		args?: string,
+	) => {
 		const sessionManager = new SessionManager();
 
-		// No args - list all sessions
+		// No args - show interactive picker
 		if (!args || args.trim() === '') {
+			if (setShowSessionSelector) {
+				setShowSessionSelector(true);
+				return;
+			}
+
+			// Fallback to text list if picker unavailable
 			const sessions = sessionManager.listSessions();
 
 			if (sessions.length === 0) {

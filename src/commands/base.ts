@@ -4,6 +4,7 @@ export interface CommandContext {
 	setShowLogin: (show: boolean) => void;
 	setShowModelSelector?: (show: boolean) => void;
 	setShowProviderSelector?: (show: boolean) => void;
+	setShowSessionSelector?: (show: boolean) => void;
 	toggleReasoning?: () => void;
 	showReasoning?: boolean;
 	sessionStats?: {

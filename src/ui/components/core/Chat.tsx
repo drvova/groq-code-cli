@@ -11,6 +11,7 @@ import PendingToolApproval from '../input-overlays/PendingToolApproval.js';
 import Login from '../input-overlays/Login.js';
 import ModelSelector from '../input-overlays/ModelSelector.js';
 import ProviderSelector from '../input-overlays/ProviderSelector.js';
+import SessionSelector from '../input-overlays/SessionSelector.js';
 import MaxIterationsContinue from '../input-overlays/MaxIterationsContinue.js';
 import ErrorRetry from '../input-overlays/ErrorRetry.js';
 import {handleSlashCommand} from '../../../commands/index.js';
@@ -87,6 +88,7 @@ export default function Chat({agent}: ChatProps) {
 	const [showLogin, setShowLogin] = useState(false);
 	const [showModelSelector, setShowModelSelector] = useState(false);
 	const [showProviderSelector, setShowProviderSelector] = useState(false);
+	const [showSessionSelector, setShowSessionSelector] = useState(false);
 	const [animationFrame, setAnimationFrame] = useState(0);
 
 	// Handle global keyboard shortcuts
@@ -178,6 +180,7 @@ export default function Chat({agent}: ChatProps) {
 					setShowLogin,
 					setShowModelSelector,
 					setShowProviderSelector,
+					setShowSessionSelector,
 					toggleReasoning,
 					showReasoning,
 					sessionStats,
@@ -314,6 +317,33 @@ export default function Chat({agent}: ChatProps) {
 		});
 	};
 
+	const handleSessionSelect = (sessionId: string) => {
+		setShowSessionSelector(false);
+		const sessionManager = new SessionManager();
+		const session = sessionManager.getSession(sessionId);
+
+		if (session) {
+			handleRestoreSession(session);
+			addMessage({
+				role: 'system',
+				content: `Resumed session: **${session.name}**\n\nMessages: ${session.messageCount} | Tokens: ${session.stats.totalTokens}\nModel: ${session.provider}/${session.model}`,
+			});
+		} else {
+			addMessage({
+				role: 'system',
+				content: 'Failed to load session.',
+			});
+		}
+	};
+
+	const handleSessionCancel = () => {
+		setShowSessionSelector(false);
+		addMessage({
+			role: 'system',
+			content: 'Session selection canceled.',
+		});
+	};
+
 	return (
 		<Box flexDirection="column" height="100%">
 			{/* Chat messages area - grows to fill available space */}
@@ -383,6 +413,11 @@ export default function Chat({agent}: ChatProps) {
 							onSubmit={handleModelSelect}
 							onCancel={handleModelCancel}
 							currentModel={agent.getCurrentModel?.() || undefined}
+						/>
+					) : showSessionSelector ? (
+						<SessionSelector
+							onSubmit={handleSessionSelect}
+							onCancel={handleSessionCancel}
 						/>
 					) : showInput ? (
 						<MessageInput
