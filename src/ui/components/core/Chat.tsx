@@ -218,7 +218,7 @@ export default function Chat({agent}: ChatProps) {
 	return (
 		<Box flexDirection="column" height="100%">
 			{/* Chat messages area */}
-			<Box flexGrow={1} flexDirection="column" paddingX={1}>
+			<Box flexGrow={1} flexDirection="column" paddingX={1} backgroundColor="gray">
 				<MessageHistory
 					messages={messages}
 					showReasoning={showReasoning}
