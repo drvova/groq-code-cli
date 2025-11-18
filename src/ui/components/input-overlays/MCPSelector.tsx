@@ -39,12 +39,14 @@ type PopularServer = PopularServerStdio | PopularServerHTTP;
 
 const POPULAR_SERVERS: PopularServer[] = [
 	{
-		type: 'http',
+		type: 'stdio',
 		name: 'Exa AI Search',
+		package: 'mcp-remote',
 		description: 'Advanced AI-powered web search and research',
-		url: 'https://mcp.exa.ai/mcp',
+		command: 'npx',
+		args: ['-y', 'mcp-remote', 'https://mcp.exa.ai/mcp'],
 		prefix: 'exa',
-		requiresConfig: 'No API key required - ready to use',
+		requiresConfig: 'No API key required - connects to hosted service',
 	},
 	{
 		type: 'stdio',
