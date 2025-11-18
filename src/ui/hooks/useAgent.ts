@@ -427,8 +427,12 @@ export function useAgent(
 
 	const restoreSession = useCallback(
 		(session: any) => {
-			// Restore UI messages
-			setMessages(session.uiMessages || []);
+			// Restore UI messages with timestamp conversion
+			const restoredMessages = (session.uiMessages || []).map((msg: any) => ({
+				...msg,
+				timestamp: new Date(msg.timestamp),
+			}));
+			setMessages(restoredMessages);
 			// Restore agent messages
 			agent.restoreMessages(session.agentMessages || []);
 		},
