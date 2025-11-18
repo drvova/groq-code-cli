@@ -1,5 +1,3 @@
-import https from 'https';
-
 export interface ModelInfo {
 	id: string;
 	name: string;
@@ -40,33 +38,11 @@ interface ModelsDevAPI {
 }
 
 async function fetchModelsDevAPI(): Promise<ModelsDevAPI> {
-	return new Promise((resolve, reject) => {
-		https
-			.get('https://models.dev/api.json', res => {
-				let data = '';
-
-				if (res.statusCode !== 200) {
-					reject(
-						new Error(`Failed to fetch models.dev API: HTTP ${res.statusCode}`),
-					);
-					return;
-				}
-
-				res.on('data', chunk => {
-					data += chunk;
-				});
-				res.on('end', () => {
-					try {
-						resolve(JSON.parse(data));
-					} catch (err) {
-						reject(new Error(`Failed to parse models.dev API: ${err}`));
-					}
-				});
-			})
-			.on('error', err => {
-				reject(new Error(`Network error fetching models.dev: ${err.message}`));
-			});
-	});
+	const res = await fetch('https://models.dev/api.json');
+	if (!res.ok) {
+		throw new Error(`Failed to fetch models.dev API: HTTP ${res.status}`);
+	}
+	return res.json() as Promise<ModelsDevAPI>;
 }
 
 export async function fetchProviders(): Promise<ProviderInfo[]> {

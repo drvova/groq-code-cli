@@ -104,11 +104,37 @@ export default function Chat({agent}: ChatProps) {
 			toggleAutoApprove();
 		}
 
-		// Page Up/Down scrolling
+		// Allow scrolling with Shift+Up/Down/PageUp/PageDown regardless of input state
+		if (key.shift) {
+			if (key.upArrow) {
+				setScrollOffset(prev => Math.min(prev + 1, messages.length - 1));
+				return;
+			}
+			if (key.downArrow) {
+				setScrollOffset(prev => Math.max(0, prev - 1));
+				return;
+			}
+			if (key.pageUp) {
+				setScrollOffset(prev => Math.min(prev + 5, messages.length - 1));
+				return;
+			}
+			if (key.pageDown) {
+				setScrollOffset(prev => Math.max(0, prev - 5));
+				return;
+			}
+		}
+
+		// Page Up/Down scrolling (without shift, only when input is empty)
 		if (key.pageUp) {
-			setScrollOffset(prev => Math.min(prev + 5, messages.length - 1));
+			// If input is empty, allow scrolling
+			if (!inputValue) {
+				setScrollOffset(prev => Math.min(prev + 5, messages.length - 1));
+			}
 		} else if (key.pageDown) {
-			setScrollOffset(prev => Math.max(0, prev - 5));
+			// If input is empty, allow scrolling
+			if (!inputValue) {
+				setScrollOffset(prev => Math.max(0, prev - 5));
+			}
 		} else if (key.return && key.ctrl) {
 			// Ctrl+Enter - scroll to bottom
 			setScrollOffset(0);

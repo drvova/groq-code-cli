@@ -70,12 +70,12 @@ export default function MessageHistory({
 		}).then(setHighlighter);
 	}, []);
 
-	// Auto-scroll to bottom when new messages are added
+	// Auto-scroll to bottom when new messages are added or when scrolling simulated history
 	useEffect(() => {
-		if (scrollRef.current) {
-			scrollRef.current.scrollToBottom?.();
+		if (scrollRef.current && typeof scrollRef.current.scrollToBottom === 'function') {
+			scrollRef.current.scrollToBottom();
 		}
-	}, [messages.length]);
+	}, [messages.length, scrollOffset]);
 
 	const renderMessage = (message: ChatMessage) => {
 		const timestamp = formatTimestamp(message.timestamp);
@@ -260,10 +260,9 @@ export default function MessageHistory({
 				<>
 					{visibleMessages.map(renderMessage)}
 					{scrollOffset > 0 && (
-						<Box marginTop={1}>
-							<Text color="yellow" dimColor>
-								↓ Scrolled up ({scrollOffset} messages hidden below) - Press
-								Page Down or End to scroll to bottom
+						<Box borderStyle="single" borderColor="yellow" paddingX={1}>
+							<Text color="yellow">
+								↓ History View ({scrollOffset} newer messages hidden)
 							</Text>
 						</Box>
 					)}

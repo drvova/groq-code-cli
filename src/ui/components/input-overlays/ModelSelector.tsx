@@ -1,11 +1,12 @@
-import React, {useState, useEffect} from 'react';
+import React, {useMemo} from 'react';
 import {Text} from 'ink';
 import {
 	fetchOpenAICompatibleModels,
 	ModelInfo,
 } from '../../../utils/models-api.js';
 import {getConfig} from '../../../core/config/index.js';
-import BaseSelector, {SelectorItem} from './BaseSelector.js';
+import {SelectorItem} from './BaseSelector.js';
+import AsyncSelector from './AsyncSelector.js';
 
 interface ModelSelectorProps {
 	onSubmit: (model: string) => void;
@@ -50,65 +51,40 @@ export default function ModelSelector({
 	onCancel,
 	currentModel,
 }: ModelSelectorProps) {
-	const [models, setModels] = useState<ModelInfo[]>(FALLBACK_MODELS);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
-	const [initialIndex, setInitialIndex] = useState(0);
+	const configManager = getConfig().getConfigManager();
+	const selectedProvider = configManager.getSelectedProvider();
+	const cachedModels = configManager.getCachedModels();
 
-	useEffect(() => {
-		const loadModels = async () => {
-			const configManager = getConfig().getConfigManager();
-			const selectedProvider = configManager.getSelectedProvider();
-			let cachedModels = configManager.getCachedModels();
+	const mapModels = (models: ModelInfo[]) =>
+		models.map(m => ({...m, label: m.name}));
 
-			if (cachedModels) {
-				processModels(cachedModels, selectedProvider);
-				setLoading(false);
-				return;
-			}
+	const filterModels = (models: ModelInfo[]) => {
+		if (!selectedProvider) return models;
+		return models.filter(m => m.providerId === selectedProvider);
+	};
 
-			try {
-				const fetchedModels = await fetchOpenAICompatibleModels();
-				if (fetchedModels.length > 0) {
-					configManager.setCachedModels(fetchedModels);
-					processModels(fetchedModels, selectedProvider);
-				}
-			} catch (err) {
-				setError(err instanceof Error ? err.message : 'Failed to fetch models');
-			} finally {
-				setLoading(false);
-			}
-		};
+	const fallbackItems = useMemo(() => mapModels(FALLBACK_MODELS), []);
 
-		const processModels = (allModels: ModelInfo[], providerId: string | null) => {
-			const filteredModels = providerId
-				? allModels.filter(m => m.providerId === providerId)
-				: allModels;
-			
-			const finalModels = filteredModels.length > 0 ? filteredModels : FALLBACK_MODELS;
-			setModels(finalModels);
-			
-			const currentIndex = finalModels.findIndex(m => m.id === currentModel);
-			setInitialIndex(currentIndex >= 0 ? currentIndex : 0);
-		};
-
-		loadModels();
-	}, [currentModel]);
-
-	const items: ModelItem[] = models.map(m => ({
-		...m,
-		label: m.name,
-	}));
+	const initialItems = useMemo(() => {
+		if (!cachedModels) return undefined;
+		const filtered = filterModels(cachedModels);
+		return mapModels(filtered.length > 0 ? filtered : FALLBACK_MODELS);
+	}, [cachedModels, selectedProvider]);
 
 	return (
-		<BaseSelector
-			items={items}
-			onSelect={(item) => onSubmit(item.id)}
+		<AsyncSelector
+			items={initialItems}
+			fetcher={async () => {
+				const allModels = await fetchOpenAICompatibleModels();
+				configManager.setCachedModels(allModels);
+				const filtered = filterModels(allModels);
+				return mapModels(filtered.length > 0 ? filtered : FALLBACK_MODELS);
+			}}
+			fallbackItems={fallbackItems}
+			onSelect={item => onSubmit(item.id)}
 			onCancel={onCancel}
 			title="Select Model"
-			initialSelectedIndex={initialIndex}
-			loading={loading}
-			error={error ? `${error} (using fallback models)` : null}
+			currentItemId={currentModel}
 			renderItem={(item, isSelected) => (
 				<Text
 					color={isSelected ? 'black' : 'white'}

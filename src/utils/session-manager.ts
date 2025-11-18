@@ -41,8 +41,7 @@ export class SessionManager {
 	private sessionsDir: string;
 	private indexPath: string;
 
-	constructor() {
-		const homeDir = os.homedir();
+	constructor(homeDir: string = os.homedir()) {
 		this.sessionsDir = path.join(homeDir, CONFIG_DIR, SESSIONS_DIR);
 		this.indexPath = path.join(this.sessionsDir, 'index.json');
 	}

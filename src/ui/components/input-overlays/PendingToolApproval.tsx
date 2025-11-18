@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import DiffPreview from '../display/DiffPreview.js';
 import { formatToolParams } from '../../../tools/tools.js';
-import { DANGEROUS_TOOLS } from '../../../tools/tool-schemas.js';
+import { ToolRegistry } from '../../../tools/registry/tool-registry.js';
 
 interface PendingToolApprovalProps {
   toolName: string;
@@ -26,9 +26,10 @@ export default function PendingToolApproval({
     setSelectedApprovalOption(0);
   }, [toolName, toolArgs]);
 
+  const isDangerous = ToolRegistry.getToolCategory(toolName) === 'dangerous';
+
   // Handle approval input
   useInput((input, key) => {
-    const isDangerous = DANGEROUS_TOOLS.includes(toolName);
     const maxOptions = isDangerous ? 1 : 2; // Dangerous tools only have Yes/No, others have Yes/Auto/No
     
     if (key.upArrow) {
@@ -105,7 +106,7 @@ export default function PendingToolApproval({
           </Box>
           
           {/* Show auto-approval option only for non-dangerous tools */}
-          {!DANGEROUS_TOOLS.includes(toolName) && (
+          {!isDangerous && (
             <Box>
               <Text color={selectedApprovalOption === 1 ? "black" : "blue"}
                     backgroundColor={selectedApprovalOption === 1 ? "rgb(114, 159, 214)" : undefined}>
@@ -115,9 +116,9 @@ export default function PendingToolApproval({
           )}
           
           <Box>
-            <Text color={selectedApprovalOption === (DANGEROUS_TOOLS.includes(toolName) ? 1 : 2) ? "black" : "red"}
-                  backgroundColor={selectedApprovalOption === (DANGEROUS_TOOLS.includes(toolName) ? 1 : 2) ? "rgb(214, 114, 114)" : undefined}>
-              {selectedApprovalOption === (DANGEROUS_TOOLS.includes(toolName) ? 1 : 2) ? <Text bold>{">"}</Text> : "  "} No, tell Groq what to do differently (esc)
+            <Text color={selectedApprovalOption === (isDangerous ? 1 : 2) ? "black" : "red"}
+                  backgroundColor={selectedApprovalOption === (isDangerous ? 1 : 2) ? "rgb(214, 114, 114)" : undefined}>
+              {selectedApprovalOption === (isDangerous ? 1 : 2) ? <Text bold>{">"}</Text> : "  "} No, tell Groq what to do differently (esc)
             </Text>
           </Box>
         </Box>

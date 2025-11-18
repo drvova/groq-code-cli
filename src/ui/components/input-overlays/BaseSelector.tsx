@@ -19,6 +19,10 @@ interface BaseSelectorProps<T extends SelectorItem> {
 	footer?: React.ReactNode;
 	onDelete?: (item: T) => void;
 	visibleItemCount?: number;
+	actions?: {
+		key: string;
+		onAction: (item: T) => void;
+	}[];
 }
 
 const DEFAULT_VISIBLE_COUNT = 10;
@@ -36,6 +40,7 @@ export default function BaseSelector<T extends SelectorItem>({
 	footer,
 	onDelete,
 	visibleItemCount = DEFAULT_VISIBLE_COUNT,
+	actions,
 }: BaseSelectorProps<T>) {
 	const [selectedIndex, setSelectedIndex] = useState(initialSelectedIndex);
 
@@ -61,6 +66,14 @@ export default function BaseSelector<T extends SelectorItem>({
 		if ((input === 'd' || input === 'D') && onDelete && items.length > 0) {
 			onDelete(items[selectedIndex]);
 			return;
+		}
+
+		if (actions && items.length > 0) {
+			const action = actions.find(a => a.key === input);
+			if (action) {
+				action.onAction(items[selectedIndex]);
+				return;
+			}
 		}
 
 		if (key.upArrow) {

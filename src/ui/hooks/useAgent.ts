@@ -1,9 +1,8 @@
 import {useState, useCallback, useRef} from 'react';
 import {Agent} from '../../core/agent.js';
 import {
-	DANGEROUS_TOOLS,
-	APPROVAL_REQUIRED_TOOLS,
-} from '../../tools/tool-schemas.js';
+    ToolRegistry
+} from '../../tools/registry/tool-registry.js';
 
 export interface ChatMessage {
 	id: string;
@@ -140,14 +139,13 @@ export function useAgent(
 						});
 					},
 					onToolStart: (name: string, args: Record<string, any>) => {
+                        const category = ToolRegistry.getToolCategory(name);
 						const toolExecution: ToolExecution = {
 							id: Math.random().toString(36).substr(2, 9),
 							name,
 							args,
 							status: 'pending',
-							needsApproval:
-								DANGEROUS_TOOLS.includes(name) ||
-								APPROVAL_REQUIRED_TOOLS.includes(name),
+							needsApproval: category === 'dangerous' || category === 'approval_required',
 						};
 
 						// Store the ID in ref for reliable matching across callbacks

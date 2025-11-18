@@ -56,8 +56,7 @@ export class ConfigManager {
 	private configPath: string;
 	private cacheDir: string;
 
-	constructor() {
-		const homeDir = os.homedir();
+	constructor(homeDir: string = os.homedir()) {
 		this.cacheDir = path.join(homeDir, CONFIG_DIR);
 		this.configPath = path.join(this.cacheDir, CONFIG_FILE);
 	}
@@ -95,36 +94,31 @@ export class ConfigManager {
 		}
 	}
 
+	private updateConfig(updater: (config: Config) => void, errorMessage: string): void {
+		try {
+			const config = this.readConfig();
+			updater(config);
+			this.writeConfig(config);
+		} catch (error) {
+			throw new Error(`${errorMessage}: ${error}`);
+		}
+	}
+
 	public getApiKey(): string | null {
 		const config = this.readConfig();
 		return config.groqApiKey || null;
 	}
 
 	public setApiKey(apiKey: string): void {
-		try {
-			const config = this.readConfig();
+		this.updateConfig(config => {
 			config.groqApiKey = apiKey;
-			this.writeConfig(config);
-		} catch (error) {
-			throw new Error(`Failed to save API key: ${error}`);
-		}
+		}, 'Failed to save API key');
 	}
 
 	public clearApiKey(): void {
-		try {
-			const config = this.readConfig();
+		this.updateConfig(config => {
 			delete config.groqApiKey;
-
-			if (Object.keys(config).length === 0) {
-				if (fs.existsSync(this.configPath)) {
-					fs.unlinkSync(this.configPath);
-				}
-			} else {
-				this.writeConfig(config);
-			}
-		} catch (error) {
-			console.warn('Failed to clear API key:', error);
-		}
+		}, 'Failed to clear API key');
 	}
 
 	public getDefaultModel(): string | null {
@@ -133,13 +127,9 @@ export class ConfigManager {
 	}
 
 	public setDefaultModel(model: string): void {
-		try {
-			const config = this.readConfig();
+		this.updateConfig(config => {
 			config.defaultModel = model;
-			this.writeConfig(config);
-		} catch (error) {
-			throw new Error(`Failed to save default model: ${error}`);
-		}
+		}, 'Failed to save default model');
 	}
 
 	public getProxy(): string | null {
@@ -148,60 +138,40 @@ export class ConfigManager {
 	}
 
 	public setProxy(proxy: string): void {
-		try {
-			// Validate proxy input
-			const trimmed = proxy?.trim?.() ?? '';
-			if (!trimmed) {
-				throw new Error('Proxy must be a non-empty string');
-			}
-
-			// Validate URL format and protocol
-			let parsedUrl: URL;
-			try {
-				parsedUrl = new URL(trimmed);
-			} catch {
-				throw new Error(`Invalid proxy URL: ${trimmed}`);
-			}
-
-			const allowedProtocols = new Set([
-				'http:',
-				'https:',
-				'socks:',
-				'socks4:',
-				'socks5:',
-			]);
-			if (!allowedProtocols.has(parsedUrl.protocol)) {
-				throw new Error(`Unsupported proxy protocol: ${parsedUrl.protocol}`);
-			}
-
-			const config = this.readConfig();
-			config.groqProxy = trimmed;
-			this.writeConfig(config);
-		} catch (error) {
-			// Preserve original error via cause for better debugging
-			throw new Error(
-				`Failed to save proxy: ${
-					error instanceof Error ? error.message : String(error)
-				}`,
-			);
+		// Validate proxy input
+		const trimmed = proxy?.trim?.() ?? '';
+		if (!trimmed) {
+			throw new Error('Proxy must be a non-empty string');
 		}
+
+		// Validate URL format and protocol
+		let parsedUrl: URL;
+		try {
+			parsedUrl = new URL(trimmed);
+		} catch {
+			throw new Error(`Invalid proxy URL: ${trimmed}`);
+		}
+
+		const allowedProtocols = new Set([
+			'http:',
+			'https:',
+			'socks:',
+			'socks4:',
+			'socks5:',
+		]);
+		if (!allowedProtocols.has(parsedUrl.protocol)) {
+			throw new Error(`Unsupported proxy protocol: ${parsedUrl.protocol}`);
+		}
+
+		this.updateConfig(config => {
+			config.groqProxy = trimmed;
+		}, 'Failed to save proxy');
 	}
 
 	public clearProxy(): void {
-		try {
-			const config = this.readConfig();
+		this.updateConfig(config => {
 			delete config.groqProxy;
-
-			if (Object.keys(config).length === 0) {
-				if (fs.existsSync(this.configPath)) {
-					fs.unlinkSync(this.configPath);
-				}
-			} else {
-				this.writeConfig(config);
-			}
-		} catch (error) {
-			console.warn('Failed to clear proxy:', error);
-		}
+		}, 'Failed to clear proxy');
 	}
 
 	public getCachedModels(): ModelInfo[] | null {
@@ -250,13 +220,9 @@ export class ConfigManager {
 	}
 
 	public setSelectedProvider(providerId: string): void {
-		try {
-			const config = this.readConfig();
+		this.updateConfig(config => {
 			config.selectedProvider = providerId;
-			this.writeConfig(config);
-		} catch (error) {
-			throw new Error(`Failed to save selected provider: ${error}`);
-		}
+		}, 'Failed to save selected provider');
 	}
 
 	public getProviderApiKey(providerId: string): string | null {
@@ -273,9 +239,7 @@ export class ConfigManager {
 	}
 
 	public setProviderApiKey(providerId: string, apiKey: string): void {
-		try {
-			const config = this.readConfig();
-
+		this.updateConfig(config => {
 			// Migrate legacy groqApiKey if exists
 			if (config.groqApiKey && !config.providers) {
 				config.providers = {groq: config.groqApiKey};
@@ -284,10 +248,7 @@ export class ConfigManager {
 
 			if (!config.providers) config.providers = {};
 			config.providers[providerId] = apiKey;
-			this.writeConfig(config);
-		} catch (error) {
-			throw new Error(`Failed to save provider API key: ${error}`);
-		}
+		}, 'Failed to save provider API key');
 	}
 
 	public getMCPServers(): {[serverName: string]: MCPServerConfig} {
@@ -296,41 +257,29 @@ export class ConfigManager {
 	}
 
 	public setMCPServer(serverName: string, serverConfig: MCPServerConfig): void {
-		try {
-			const config = this.readConfig();
+		this.updateConfig(config => {
 			if (!config.mcpServers) config.mcpServers = {};
 			config.mcpServers[serverName] = serverConfig;
-			this.writeConfig(config);
-		} catch (error) {
-			throw new Error(`Failed to save MCP server config: ${error}`);
-		}
+		}, 'Failed to save MCP server config');
 	}
 
 	public removeMCPServer(serverName: string): void {
-		try {
-			const config = this.readConfig();
+		this.updateConfig(config => {
 			if (config.mcpServers) {
 				delete config.mcpServers[serverName];
 				if (Object.keys(config.mcpServers).length === 0) {
 					delete config.mcpServers;
 				}
-				this.writeConfig(config);
 			}
-		} catch (error) {
-			throw new Error(`Failed to remove MCP server: ${error}`);
-		}
+		}, 'Failed to remove MCP server');
 	}
 
 	public toggleMCPServer(serverName: string): void {
-		try {
-			const config = this.readConfig();
+		this.updateConfig(config => {
 			if (config.mcpServers?.[serverName]) {
 				config.mcpServers[serverName].disabled =
 					!config.mcpServers[serverName].disabled;
-				this.writeConfig(config);
 			}
-		} catch (error) {
-			throw new Error(`Failed to toggle MCP server: ${error}`);
-		}
+		}, 'Failed to toggle MCP server');
 	}
 }

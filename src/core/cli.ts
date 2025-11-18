@@ -5,6 +5,7 @@ import {render} from 'ink';
 import React from 'react';
 import {Agent} from './agent.js';
 import App from '../ui/App.js';
+import {printLogo} from '../ui/components/display/utils/logo.js';
 
 const program = new Command();
 
@@ -27,33 +28,7 @@ async function startChat(
 	proxy?: string,
 ): Promise<void> {
 	const terminalWidth = process.stdout.columns || 80;
-	const logo = `
-      ██████  ██    ██  █████
-     ██    ██ ██    ██ ██   ██
-     ██    ██ ██    ██ ███████
-     ██    ██  ██  ██  ██   ██
-      ██████    ████   ██   ██
-
-   ███████  ██████  ███████  ███████
-  ██       ██    ██ ██    ██ ██
-  ██       ██    ██ ██    ██ ██████
-  ██       ██    ██ ██    ██ ██
-   ███████  ██████  ███████  ███████
-`;
-
-	const logoLines = logo.split('\n');
-	const maxLineLength = Math.max(...logoLines.map(line => line.length));
-	const padding = Math.max(0, Math.floor((terminalWidth - maxLineLength) / 2));
-	const centeredLogo = logoLines
-		.map(line => {
-			if (line.trim()) {
-				return ' '.repeat(padding) + chalk.cyan.bgHex('#0a0e14')(line);
-			}
-			return line;
-		})
-		.join('\n');
-
-	console.log(centeredLogo);
+	printLogo(terminalWidth);
 
 	let defaultModel = 'moonshotai/kimi-k2-instruct';
 

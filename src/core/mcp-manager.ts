@@ -109,63 +109,45 @@ export class MCPManager {
 		serverName: string;
 		prefixedName: string;
 	}> {
-		const allTools: Array<{
-			name: string;
-			description?: string;
-			inputSchema: Record<string, any>;
-			serverName: string;
-			prefixedName: string;
-		}> = [];
-
-		for (const [serverName, client] of this.clients.entries()) {
-			if (!client.isServerConnected()) {
-				continue;
-			}
-
-			const tools = client.getTools();
-			const prefix = client.getToolPrefix();
-
-			for (const tool of tools) {
-				const prefixedName = prefix ? `${prefix}:${tool.name}` : tool.name;
-
-				allTools.push({
+		return Array.from(this.clients.entries())
+			.filter(([_, client]) => client.isServerConnected())
+			.flatMap(([serverName, client]) => {
+				const prefix = client.getToolPrefix();
+				return client.getTools().map(tool => ({
 					name: tool.name,
 					description: tool.description,
 					inputSchema: tool.inputSchema,
 					serverName,
-					prefixedName,
-				});
-			}
-		}
-
-		return allTools;
+					prefixedName: prefix ? `${prefix}:${tool.name}` : tool.name,
+				}));
+			});
 	}
 
 	async callTool(prefixedToolName: string, args: any): Promise<MCPToolResult> {
 		for (const [serverName, client] of this.clients.entries()) {
-			if (!client.isServerConnected()) {
-				continue;
-			}
+			if (!client.isServerConnected()) continue;
 
-			const tools = client.getTools();
 			const prefix = client.getToolPrefix();
+			const toolName = prefix
+				? prefixedToolName.replace(new RegExp(`^${prefix}:`), '')
+				: prefixedToolName;
 
-			for (const tool of tools) {
-				const toolPrefixedName = prefix ? `${prefix}:${tool.name}` : tool.name;
+			// If prefix exists but wasn't in the name (and we removed nothing), skip
+			if (prefix && toolName === prefixedToolName) continue;
 
-				if (toolPrefixedName === prefixedToolName) {
-					try {
-						return await client.callTool(tool.name, args);
-					} catch (error) {
-						if (
-							error instanceof Error &&
-							error.message.includes('not connected')
-						) {
-							await this.restartServer(serverName);
-							return await client.callTool(tool.name, args);
-						}
-						throw error;
+			const tool = client.getTools().find(t => t.name === toolName);
+			if (tool) {
+				try {
+					return await client.callTool(toolName, args);
+				} catch (error) {
+					if (
+						error instanceof Error &&
+						error.message.includes('not connected')
+					) {
+						await this.restartServer(serverName);
+						return await client.callTool(toolName, args);
 					}
+					throw error;
 				}
 			}
 		}

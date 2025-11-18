@@ -1,8 +1,9 @@
-import React, {useState, useEffect} from 'react';
+import React, {useMemo} from 'react';
 import {Text} from 'ink';
 import {fetchProviders, ProviderInfo} from '../../../utils/models-api.js';
 import {getConfig} from '../../../core/config/index.js';
-import BaseSelector, {SelectorItem} from './BaseSelector.js';
+import {SelectorItem} from './BaseSelector.js';
+import AsyncSelector from './AsyncSelector.js';
 
 interface ProviderSelectorProps {
 	onSubmit: (providerId: string) => void;
@@ -34,58 +35,32 @@ export default function ProviderSelector({
 	onCancel,
 	currentProvider,
 }: ProviderSelectorProps) {
-	const [providers, setProviders] = useState<ProviderInfo[]>(FALLBACK_PROVIDERS);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
-	const [initialIndex, setInitialIndex] = useState(0);
+	const configManager = getConfig().getConfigManager();
+	const cachedProviders = configManager.getCachedProviders();
 
-	useEffect(() => {
-		const loadProviders = async () => {
-			const configManager = getConfig().getConfigManager();
-			let cachedProviders = configManager.getCachedProviders();
+	const fallbackItems = useMemo(
+		() => FALLBACK_PROVIDERS.map(p => ({...p, label: p.name})),
+		[],
+	);
 
-			if (cachedProviders) {
-				updateState(cachedProviders);
-				setLoading(false);
-				return;
-			}
-
-			try {
-				const fetchedProviders = await fetchProviders();
-				if (fetchedProviders.length > 0) {
-					configManager.setCachedProviders(fetchedProviders);
-					updateState(fetchedProviders);
-				}
-			} catch (err) {
-				setError(err instanceof Error ? err.message : 'Failed to fetch providers');
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		const updateState = (list: ProviderInfo[]) => {
-			setProviders(list);
-			const currentIndex = list.findIndex(p => p.id === currentProvider);
-			setInitialIndex(currentIndex >= 0 ? currentIndex : 0);
-		};
-
-		loadProviders();
-	}, [currentProvider]);
-
-	const items: ProviderItem[] = providers.map(p => ({
-		...p,
-		label: p.name,
-	}));
+	const initialItems = useMemo(
+		() => (cachedProviders ? cachedProviders.map(p => ({...p, label: p.name})) : undefined),
+		[cachedProviders],
+	);
 
 	return (
-		<BaseSelector
-			items={items}
-			onSelect={(item) => onSubmit(item.id)}
+		<AsyncSelector
+			items={initialItems}
+			fetcher={async () => {
+				const providers = await fetchProviders();
+				return providers.map(p => ({...p, label: p.name}));
+			}}
+			onLoadSuccess={(items) => configManager.setCachedProviders(items)}
+			fallbackItems={fallbackItems}
+			onSelect={item => onSubmit(item.id)}
 			onCancel={onCancel}
 			title="Select Provider"
-			initialSelectedIndex={initialIndex}
-			loading={loading}
-			error={error ? `${error} (using fallback providers)` : null}
+			currentItemId={currentProvider}
 			renderItem={(item, isSelected) => (
 				<Text
 					color={isSelected ? 'black' : 'white'}
