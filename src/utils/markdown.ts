@@ -5,6 +5,110 @@ export interface MarkdownElement {
 	language?: string;
 }
 
+function detectLanguage(code: string): string {
+	const trimmed = code.trim();
+
+	// TypeScript/JavaScript patterns
+	if (
+		/(import|export|const|let|var|function|class|interface|type)\s/.test(
+			trimmed,
+		) ||
+		/=>/.test(trimmed) ||
+		/console\.(log|error|warn)/.test(trimmed)
+	) {
+		if (
+			/:\s*(string|number|boolean|any|void|unknown)/.test(trimmed) ||
+			/(interface|type)\s+\w+/.test(trimmed)
+		) {
+			return 'typescript';
+		}
+		return 'javascript';
+	}
+
+	// Python patterns
+	if (
+		/^(def|class|import|from|if __name__|print)\s/.test(trimmed) ||
+		/:\s*$/.test(trimmed.split('\n')[0])
+	) {
+		return 'python';
+	}
+
+	// Go patterns
+	if (
+		/^(package|func|type|var|const|import)\s/.test(trimmed) ||
+		/:=/.test(trimmed)
+	) {
+		return 'go';
+	}
+
+	// Rust patterns
+	if (
+		/^(fn|let|mut|use|struct|enum|impl|pub)\s/.test(trimmed) ||
+		/->/.test(trimmed)
+	) {
+		return 'rust';
+	}
+
+	// Java/C++ patterns
+	if (/(public|private|protected|class|void|int|String)\s/.test(trimmed)) {
+		if (/System\.out\.print|new\s+\w+\(/.test(trimmed)) {
+			return 'java';
+		}
+		return 'cpp';
+	}
+
+	// Shell/Bash patterns
+	if (
+		/^(#!\/bin\/(bash|sh)|cd|ls|grep|curl|wget|sudo)\s/.test(trimmed) ||
+		/\$\{|\$\(/.test(trimmed)
+	) {
+		return 'bash';
+	}
+
+	// JSON pattern
+	if (
+		/^\{[\s\S]*"[\w-]+"[\s\S]*:/.test(trimmed) ||
+		/^\[[\s\S]*\{/.test(trimmed)
+	) {
+		return 'json';
+	}
+
+	// HTML/XML patterns
+	if (/<[a-z][\s\S]*>/.test(trimmed)) {
+		return 'html';
+	}
+
+	// CSS patterns
+	if (/\{[\s\S]*[a-z-]+:\s*[^;]+;/.test(trimmed)) {
+		return 'css';
+	}
+
+	return 'text';
+}
+
+function isCodeBlock(lines: string[]): boolean {
+	if (lines.length < 2) return false;
+
+	const nonEmptyLines = lines.filter(l => l.trim().length > 0);
+	if (nonEmptyLines.length < 2) return false;
+
+	// Check for common code patterns
+	const codePatterns = [
+		/^(import|export|const|let|var|function|class|def|package|use|fn|pub)\s/,
+		/[{}\[\]();]/,
+		/=>/,
+		/:=|->|<-/,
+		/\/\/|\/\*|\*\/|#|<!--/,
+	];
+
+	const matchCount = nonEmptyLines.filter(line =>
+		codePatterns.some(pattern => pattern.test(line.trim())),
+	).length;
+
+	// If more than 30% of lines match code patterns, likely code
+	return matchCount / nonEmptyLines.length > 0.3;
+}
+
 export interface InlineElement {
 	type: 'text' | 'code' | 'bold' | 'italic';
 	content: string;
@@ -17,7 +121,7 @@ export function parseMarkdown(content: string): MarkdownElement[] {
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
 
-		// Handle code blocks
+		// Handle markdown code blocks
 		if (line.startsWith('```')) {
 			const codeBlocks: string[] = [];
 			const language = line.substring(3).trim() || 'text';
@@ -57,6 +161,47 @@ export function parseMarkdown(content: string): MarkdownElement[] {
 				content: line,
 			});
 			continue;
+		}
+
+		// Detect plain code blocks (non-markdown format)
+		if (i < lines.length - 1) {
+			const potentialCodeLines: string[] = [line];
+			let j = i + 1;
+
+			// Collect consecutive lines that might be code
+			while (
+				j < lines.length &&
+				!lines[j].startsWith('#') &&
+				!lines[j].startsWith('```')
+			) {
+				potentialCodeLines.push(lines[j]);
+				j++;
+
+				// Stop if we hit an empty line followed by non-code content
+				if (
+					lines[j - 1].trim() === '' &&
+					j < lines.length &&
+					lines[j].trim() !== '' &&
+					!/(^[{}\[\]();]|import|export|const|let|var|function|class|def)/.test(
+						lines[j],
+					)
+				) {
+					break;
+				}
+			}
+
+			// Check if this is a code block
+			if (isCodeBlock(potentialCodeLines)) {
+				const codeContent = potentialCodeLines.join('\n');
+				const language = detectLanguage(codeContent);
+				elements.push({
+					type: 'code-block',
+					content: codeContent,
+					language,
+				});
+				i = j - 1; // Skip processed lines
+				continue;
+			}
 		}
 
 		// Regular text

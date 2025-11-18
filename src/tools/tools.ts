@@ -199,15 +199,47 @@ export async function readFile(
 			return createToolResponse(true, content, message);
 		}
 	} catch (error) {
-		if ((error as any).code === 'ENOENT') {
-			return createToolResponse(false, undefined, '', 'Error: File not found');
+		const err = error as NodeJS.ErrnoException;
+
+		switch (err.code) {
+			case 'ENOENT':
+				return createToolResponse(
+					false,
+					undefined,
+					'',
+					'Error: File not found',
+				);
+			case 'EACCES':
+			case 'EPERM':
+				return createToolResponse(
+					false,
+					undefined,
+					'',
+					`Error: Permission denied reading ${filePath}`,
+				);
+			case 'EISDIR':
+				return createToolResponse(
+					false,
+					undefined,
+					'',
+					`Error: ${filePath} is a directory, not a file`,
+				);
+			case 'EMFILE':
+			case 'ENFILE':
+				return createToolResponse(
+					false,
+					undefined,
+					'',
+					'Error: Too many open files (system limit reached)',
+				);
+			default:
+				return createToolResponse(
+					false,
+					undefined,
+					'',
+					`Error: Failed to read file: ${err.message || 'Unknown error'}`,
+				);
 		}
-		return createToolResponse(
-			false,
-			undefined,
-			'',
-			'Error: Failed to read file',
-		);
 	}
 }
 

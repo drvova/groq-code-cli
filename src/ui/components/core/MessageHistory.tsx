@@ -240,7 +240,7 @@ export default function MessageHistory({
 	};
 
 	return (
-		<Box ref={scrollRef} flexDirection="column" flexGrow={1}>
+		<Box ref={scrollRef} flexDirection="column" flexGrow={1} overflow="hidden">
 			{messages.length === 0 ? (
 				<Box
 					justifyContent="center"

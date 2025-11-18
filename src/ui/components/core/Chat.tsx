@@ -15,6 +15,7 @@ import MaxIterationsContinue from '../input-overlays/MaxIterationsContinue.js';
 import ErrorRetry from '../input-overlays/ErrorRetry.js';
 import {handleSlashCommand} from '../../../commands/index.js';
 import {ConfigManager} from '../../../utils/local-settings.js';
+import {SessionManager} from '../../../utils/session-manager.js';
 
 interface ChatProps {
 	agent: Agent;
@@ -74,6 +75,7 @@ export default function Chat({agent}: ChatProps) {
 		addMessage,
 		setApiKey,
 		clearHistory,
+		restoreSession,
 		toggleAutoApprove,
 		toggleReasoning,
 		interruptRequest,
@@ -158,10 +160,20 @@ export default function Chat({agent}: ChatProps) {
 			// Handle slash commands
 			if (message.startsWith('/')) {
 				handleSlashCommand(message, {
-					addMessage,
+					addMessage: (msg: any) => {
+						const msgId = addMessage(msg);
+						// Handle session actions from command metadata
+						if (msg.meta?.action === 'save_session') {
+							handleSaveSession(msg.meta.sessionName);
+						} else if (msg.meta?.action === 'restore_session') {
+							handleRestoreSession(msg.meta.session);
+						}
+						return msgId;
+					},
 					clearHistory: () => {
 						clearHistory();
 						clearSessionStats();
+						resetMetrics();
 					},
 					setShowLogin,
 					setShowModelSelector,
@@ -215,6 +227,54 @@ export default function Chat({agent}: ChatProps) {
 		});
 	};
 
+	const handleSaveSession = (sessionName: string) => {
+		const sessionManager = new SessionManager();
+		const configManager = new ConfigManager();
+		const currentProvider = configManager.getSelectedProvider() || 'groq';
+		const currentModel =
+			configManager.getDefaultModel() || 'llama-3.3-70b-versatile';
+
+		const agentMessages = agent.getMessages();
+		const uiMessages = messages;
+
+		sessionManager.saveSession(
+			sessionName,
+			agentMessages,
+			uiMessages,
+			sessionStats,
+			currentProvider,
+			currentModel,
+		);
+
+		addMessage({
+			role: 'system',
+			content: `Session saved: **${sessionName}**\n\nMessages: ${uiMessages.length} | Tokens: ${sessionStats.totalTokens}`,
+		});
+	};
+
+	const handleRestoreSession = (session: any) => {
+		restoreSession(session);
+		const configManager = new ConfigManager();
+		configManager.setSelectedProvider(session.provider);
+		agent.setModel(session.model);
+
+		clearSessionStats();
+		addSessionTokens({
+			prompt_tokens: session.stats.promptTokens,
+			completion_tokens: session.stats.completionTokens,
+			total_tokens: session.stats.totalTokens,
+			total_time: session.stats.totalTime,
+		});
+
+		for (let i = 1; i < session.stats.totalRequests; i++) {
+			addSessionTokens({
+				prompt_tokens: 0,
+				completion_tokens: 0,
+				total_tokens: 0,
+			});
+		}
+	};
+
 	const handleModelSelect = (model: string) => {
 		setShowModelSelector(false);
 		// Clear chat history and session stats when switching models
@@ -256,8 +316,8 @@ export default function Chat({agent}: ChatProps) {
 
 	return (
 		<Box flexDirection="column" height="100%">
-			{/* Chat messages area */}
-			<Box flexGrow={1} flexDirection="column" paddingX={1}>
+			{/* Chat messages area - grows to fill available space */}
+			<Box flexGrow={1} flexDirection="column" paddingX={1} minHeight={0}>
 				<MessageHistory
 					messages={messages}
 					showReasoning={showReasoning}
@@ -274,87 +334,91 @@ export default function Chat({agent}: ChatProps) {
 				/>
 			</Box>
 
-			{/* Token metrics */}
-			<TokenMetrics
-				isActive={isActive}
-				isPaused={isPaused}
-				startTime={startTime}
-				endTime={endTime}
-				pausedTime={pausedTime}
-				completionTokens={completionTokens}
-			/>
+			{/* Fixed bottom section */}
+			<Box flexDirection="column" flexShrink={0}>
+				{/* Token metrics */}
+				<TokenMetrics
+					isActive={isActive}
+					isPaused={isPaused}
+					startTime={startTime}
+					endTime={endTime}
+					pausedTime={pausedTime}
+					completionTokens={completionTokens}
+				/>
 
-			{/* Input area */}
-			<Box paddingX={1}>
-				{pendingApproval ? (
-					<PendingToolApproval
-						toolName={pendingApproval.toolName}
-						toolArgs={pendingApproval.toolArgs}
-						onApprove={() => handleApproval(true, false)}
-						onReject={() => handleApproval(false, false)}
-						onApproveWithAutoSession={() => handleApproval(true, true)}
-					/>
-				) : pendingMaxIterations ? (
-					<MaxIterationsContinue
-						maxIterations={pendingMaxIterations.maxIterations}
-						onContinue={() => respondToMaxIterations(true)}
-						onStop={() => respondToMaxIterations(false)}
-					/>
-				) : pendingError ? (
-					<ErrorRetry
-						error={pendingError.error}
-						onRetry={handleErrorRetry}
-						onCancel={handleErrorCancel}
-					/>
-				) : showLogin ? (
-					<Login onSubmit={handleLogin} onCancel={handleLoginCancel} />
-				) : showProviderSelector ? (
-					<ProviderSelector
-						onSubmit={handleProviderSelect}
-						onCancel={handleProviderCancel}
-						currentProvider={
-							new ConfigManager().getSelectedProvider() || undefined
-						}
-					/>
-				) : showModelSelector ? (
-					<ModelSelector
-						onSubmit={handleModelSelect}
-						onCancel={handleModelCancel}
-						currentModel={agent.getCurrentModel?.() || undefined}
-					/>
-				) : showInput ? (
-					<MessageInput
-						value={inputValue}
-						onChange={setInputValue}
-						onSubmit={handleSendMessage}
-						placeholder="... (Esc to clear, Ctrl+C to exit)"
-						userMessageHistory={userMessageHistory}
-					/>
-				) : (
+				{/* Input area */}
+				<Box paddingX={1}>
+					{pendingApproval ? (
+						<PendingToolApproval
+							toolName={pendingApproval.toolName}
+							toolArgs={pendingApproval.toolArgs}
+							onApprove={() => handleApproval(true, false)}
+							onReject={() => handleApproval(false, false)}
+							onApproveWithAutoSession={() => handleApproval(true, true)}
+						/>
+					) : pendingMaxIterations ? (
+						<MaxIterationsContinue
+							maxIterations={pendingMaxIterations.maxIterations}
+							onContinue={() => respondToMaxIterations(true)}
+							onStop={() => respondToMaxIterations(false)}
+						/>
+					) : pendingError ? (
+						<ErrorRetry
+							error={pendingError.error}
+							onRetry={handleErrorRetry}
+							onCancel={handleErrorCancel}
+						/>
+					) : showLogin ? (
+						<Login onSubmit={handleLogin} onCancel={handleLoginCancel} />
+					) : showProviderSelector ? (
+						<ProviderSelector
+							onSubmit={handleProviderSelect}
+							onCancel={handleProviderCancel}
+							currentProvider={
+								new ConfigManager().getSelectedProvider() || undefined
+							}
+						/>
+					) : showModelSelector ? (
+						<ModelSelector
+							onSubmit={handleModelSelect}
+							onCancel={handleModelCancel}
+							currentModel={agent.getCurrentModel?.() || undefined}
+						/>
+					) : showInput ? (
+						<MessageInput
+							value={inputValue}
+							onChange={setInputValue}
+							onSubmit={handleSendMessage}
+							placeholder="... (↑↓ history when empty, Esc clear, Ctrl+C exit)"
+							userMessageHistory={userMessageHistory}
+						/>
+					) : (
+						<Box>
+							<Text color="cyan">
+								{['█', '▓', '▒', '░', ' '][animationFrame]}
+							</Text>
+							<Text color="gray" dimColor>
+								Processing
+							</Text>
+							<Text color="cyan">
+								{[' ', '░', '▒', '▓', '█'][animationFrame]}
+							</Text>
+						</Box>
+					)}
+				</Box>
+
+				{/* Status bar */}
+				<Box justifyContent="space-between" paddingX={1}>
 					<Box>
-						<Text color="cyan">
-							{['█', '▓', '▒', '░', ' '][animationFrame]}
-						</Text>
-						<Text color="gray" dimColor>
-							Processing
-						</Text>
-						<Text color="cyan">
-							{[' ', '░', '▒', '▓', '█'][animationFrame]}
+						<Text color="cyan" bold>
+							{sessionAutoApprove ? 'auto-approve edits is on' : ''}
 						</Text>
 					</Box>
-				)}
-			</Box>
-
-			<Box justifyContent="space-between" paddingX={1}>
-				<Box>
-					<Text color="cyan" bold>
-						{sessionAutoApprove ? 'auto-approve edits is on' : ''}
-					</Text>
-				</Box>
-				<Box>
-					<Text color="gray" dimColor>
-						{agent.getCurrentModel?.() || ''}
-					</Text>
+					<Box>
+						<Text color="gray" dimColor>
+							{agent.getCurrentModel?.() || ''}
+						</Text>
+					</Box>
 				</Box>
 			</Box>
 		</Box>

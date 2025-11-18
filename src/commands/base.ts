@@ -18,11 +18,11 @@ export interface CommandContext {
 export interface CommandDefinition {
 	command: string;
 	description: string;
-	handler: (context: CommandContext) => void;
+	handler: (context: CommandContext, args?: string) => void;
 }
 
 export abstract class BaseCommand implements CommandDefinition {
 	abstract command: string;
 	abstract description: string;
-	abstract handler(context: CommandContext): void;
+	abstract handler(context: CommandContext, args?: string): void;
 }

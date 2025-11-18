@@ -309,6 +309,18 @@ When asked about your identity, you should identify yourself as a coding assista
 		this.messages = this.messages.filter(msg => msg.role === 'system');
 	}
 
+	public restoreMessages(messages: Message[]): void {
+		// Keep only system messages
+		const systemMessages = this.messages.filter(msg => msg.role === 'system');
+		// Restore conversation history
+		this.messages = [...systemMessages, ...messages];
+	}
+
+	public getMessages(): Message[] {
+		// Return non-system messages for session saving
+		return this.messages.filter(msg => msg.role !== 'system');
+	}
+
 	public setModel(model: string): void {
 		this.model = model;
 		// Save as default model

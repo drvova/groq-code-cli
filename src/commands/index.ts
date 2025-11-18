@@ -7,6 +7,10 @@ import {clearCommand} from './definitions/clear.js';
 import {initCommand} from './definitions/init.js';
 import {reasoningCommand} from './definitions/reasoning.js';
 import {statsCommand} from './definitions/stats.js';
+import {sessionsCommand} from './definitions/sessions.js';
+import {resumeCommand} from './definitions/resume.js';
+import {saveCommand} from './definitions/save.js';
+import {deleteCommand} from './definitions/delete.js';
 
 const availableCommands: CommandDefinition[] = [
 	helpCommand,
@@ -17,6 +21,10 @@ const availableCommands: CommandDefinition[] = [
 	initCommand,
 	reasoningCommand,
 	statsCommand,
+	sessionsCommand,
+	resumeCommand,
+	saveCommand,
+	deleteCommand,
 ];
 
 export function getAvailableCommands(): CommandDefinition[] {
@@ -35,6 +43,8 @@ export function handleSlashCommand(command: string, context: CommandContext) {
 		spaceIndex > -1
 			? fullCommand.substring(0, spaceIndex).toLowerCase()
 			: fullCommand.toLowerCase();
+	const args =
+		spaceIndex > -1 ? fullCommand.substring(spaceIndex + 1).trim() : '';
 
 	const commandDef = getAvailableCommands().find(c => c.command === cmd);
 
@@ -45,7 +55,7 @@ export function handleSlashCommand(command: string, context: CommandContext) {
 	});
 
 	if (commandDef) {
-		commandDef.handler(context);
+		commandDef.handler(context, args);
 	}
 }
 
