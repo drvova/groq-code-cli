@@ -7,6 +7,7 @@ import {useSessionStats} from '../../hooks/useSessionStats.js';
 import MessageHistory from './MessageHistory.js';
 import MessageInput from './MessageInput.js';
 import TokenMetrics from '../display/TokenMetrics.js';
+import MCPStatus from '../display/MCPStatus.js';
 import PendingToolApproval from '../input-overlays/PendingToolApproval.js';
 import Login from '../input-overlays/Login.js';
 import ModelSelector from '../input-overlays/ModelSelector.js';
@@ -514,7 +515,8 @@ export default function Chat({agent}: ChatProps) {
 
 				{/* Status bar */}
 				<Box justifyContent="space-between" paddingX={1}>
-					<Box>
+					<Box gap={2}>
+						<MCPStatus />
 						<Text color="cyan" bold>
 							{sessionAutoApprove ? 'auto-approve edits is on' : ''}
 						</Text>
