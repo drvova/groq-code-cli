@@ -118,7 +118,7 @@ export default function MessageHistory({
 												lang: element.language || 'text',
 												theme: 'dark-plus',
 											});
-											const highlighted = tokens
+											const highlighted = tokens.tokens
 												.map((line: any) =>
 													line
 														.map((token: any) =>
