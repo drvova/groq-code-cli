@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {Box, Text} from 'ink';
-import {createHighlighter from 'shiki';
+import {createHighlighter} from 'shiki';
 import chalk from 'chalk';
 import {ChatMessage} from '../../hooks/useAgent.js';
 import ToolHistoryItem from '../display/ToolHistoryItem.js';
