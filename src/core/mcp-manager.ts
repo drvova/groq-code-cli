@@ -1,5 +1,6 @@
 import {MCPClient, MCPTool, MCPToolResult} from './mcp-client.js';
-import {ConfigManager, MCPServerConfig} from '../utils/local-settings.js';
+import {MCPServerConfig} from '../utils/local-settings.js';
+import {getConfig} from './config/index.js';
 
 export interface MCPServerStatus {
 	name: string;
@@ -12,11 +13,10 @@ export interface MCPServerStatus {
 export class MCPManager {
 	private static instance: MCPManager;
 	private clients: Map<string, MCPClient> = new Map();
-	private configManager: ConfigManager;
 	private initializationErrors: Map<string, string> = new Map();
 
 	private constructor() {
-		this.configManager = new ConfigManager();
+		// No need to store config - using singleton via getConfig()
 	}
 
 	public static getInstance(): MCPManager {
@@ -27,7 +27,7 @@ export class MCPManager {
 	}
 
 	async initializeServers(): Promise<void> {
-		const serverConfigs = this.configManager.getMCPServers();
+		const serverConfigs = getConfig().getConfigManager().getMCPServers();
 
 		for (const [serverName, config] of Object.entries(serverConfigs)) {
 			if (config.disabled) {
@@ -50,10 +50,12 @@ export class MCPManager {
 		config?: MCPServerConfig,
 	): Promise<void> {
 		if (!config) {
-			const configs = this.configManager.getMCPServers();
+			const configs = getConfig().getConfigManager().getMCPServers();
 			config = configs[serverName];
 			if (!config) {
-				throw new Error(`MCP server '${serverName}' not found in configuration`);
+				throw new Error(
+					`MCP server '${serverName}' not found in configuration`,
+				);
 			}
 		}
 
@@ -139,10 +141,7 @@ export class MCPManager {
 		return allTools;
 	}
 
-	async callTool(
-		prefixedToolName: string,
-		args: any,
-	): Promise<MCPToolResult> {
+	async callTool(prefixedToolName: string, args: any): Promise<MCPToolResult> {
 		for (const [serverName, client] of this.clients.entries()) {
 			if (!client.isServerConnected()) {
 				continue;
@@ -152,9 +151,7 @@ export class MCPManager {
 			const prefix = client.getToolPrefix();
 
 			for (const tool of tools) {
-				const toolPrefixedName = prefix
-					? `${prefix}:${tool.name}`
-					: tool.name;
+				const toolPrefixedName = prefix ? `${prefix}:${tool.name}` : tool.name;
 
 				if (toolPrefixedName === prefixedToolName) {
 					try {
@@ -177,7 +174,7 @@ export class MCPManager {
 	}
 
 	getServerStatus(): MCPServerStatus[] {
-		const configs = this.configManager.getMCPServers();
+		const configs = getConfig().getConfigManager().getMCPServers();
 		const statuses: MCPServerStatus[] = [];
 
 		for (const [serverName, config] of Object.entries(configs)) {
@@ -197,7 +194,7 @@ export class MCPManager {
 	}
 
 	hasServer(serverName: string): boolean {
-		const configs = this.configManager.getMCPServers();
+		const configs = getConfig().getConfigManager().getMCPServers();
 		return serverName in configs;
 	}
 }

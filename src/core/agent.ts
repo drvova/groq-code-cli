@@ -3,7 +3,7 @@ import {
 	getReadBeforeEditError,
 } from '../tools/validators.js';
 import {ToolRegistry, ToolSchema, initializeAllTools} from '../tools/index.js';
-import {ConfigManager} from '../utils/local-settings.js';
+import {getConfig} from './config/index.js';
 import {getProxyAgent, getProxyInfo} from '../utils/proxy-config.js';
 import {MCPManager} from './mcp-manager.js';
 import {LLMProvider, ProviderFactory, Message} from './providers/index.js';
@@ -18,7 +18,6 @@ export class Agent {
 	private temperature: number;
 	private sessionAutoApprove: boolean = false;
 	private systemMessage: string;
-	private configManager: ConfigManager;
 	private proxyOverride?: string;
 	private currentProvider: string = 'groq';
 	private mcpManager: MCPManager;
@@ -52,7 +51,6 @@ export class Agent {
 	) {
 		this.model = model;
 		this.temperature = temperature;
-		this.configManager = new ConfigManager();
 		this.mcpManager = MCPManager.getInstance();
 		this.proxyOverride = proxyOverride;
 
@@ -111,8 +109,7 @@ export class Agent {
 		proxyOverride?: string,
 	): Promise<Agent> {
 		// Check for default model in config if model not explicitly provided
-		const configManager = new ConfigManager();
-		const defaultModel = configManager.getDefaultModel();
+		const defaultModel = getConfig().getDefaultModel();
 		const selectedModel = defaultModel || model;
 
 		const agent = new Agent(
@@ -223,7 +220,7 @@ When asked about your identity, you should identify yourself as a coding assista
 		}
 
 		// Get selected provider
-		this.currentProvider = this.configManager.getSelectedProvider() || 'groq';
+		this.currentProvider = getConfig().getSelectedProvider() || 'groq';
 
 		// Create provider using factory
 		this.provider = await ProviderFactory.create(this.currentProvider, {
@@ -238,12 +235,12 @@ When asked about your identity, you should identify yourself as a coding assista
 	}
 
 	public async saveApiKey(apiKey: string): Promise<void> {
-		this.configManager.setApiKey(apiKey);
+		getConfig().setApiKey(apiKey);
 		await this.setApiKey(apiKey);
 	}
 
 	public clearApiKey(): void {
-		this.configManager.clearApiKey();
+		getConfig().clearApiKey();
 		this.apiKey = null;
 		this.provider = null;
 	}
@@ -365,7 +362,7 @@ When asked about your identity, you should identify yourself as a coding assista
 	public setModel(model: string): void {
 		this.model = model;
 		// Save as default model
-		this.configManager.setDefaultModel(model);
+		getConfig().setDefaultModel(model);
 		// Update system message to reflect new model
 		const newSystemMessage = this.buildDefaultSystemMessage();
 		this.systemMessage = newSystemMessage;
@@ -422,10 +419,8 @@ When asked about your identity, you should identify yourself as a coding assista
 				debugLog(
 					'Environment variable GROQ_API_KEY not found, checking config file',
 				);
-				const selectedProvider =
-					this.configManager.getSelectedProvider() || 'groq';
-				const providerApiKey =
-					this.configManager.getProviderApiKey(selectedProvider);
+				const selectedProvider = getConfig().getSelectedProvider() || 'groq';
+				const providerApiKey = getConfig().getProviderApiKey(selectedProvider);
 
 				if (providerApiKey) {
 					debugLog(
@@ -434,7 +429,7 @@ When asked about your identity, you should identify yourself as a coding assista
 					await this.setApiKey(providerApiKey);
 				} else {
 					// Fallback to legacy groqApiKey field
-					const legacyApiKey = this.configManager.getApiKey();
+					const legacyApiKey = getConfig().getApiKey();
 					if (legacyApiKey) {
 						debugLog('Using API key from legacy groqApiKey field');
 						await this.setApiKey(legacyApiKey);
