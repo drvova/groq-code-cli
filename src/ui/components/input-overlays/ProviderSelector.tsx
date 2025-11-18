@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import {Box, Text, useInput} from 'ink';
 import {fetchProviders, ProviderInfo} from '../../../utils/models-api.js';
-import {ConfigManager} from '../../../utils/local-settings.js';
+import {getConfig} from '../../../core/config/index.js';
 
 interface ProviderSelectorProps {
 	onSubmit: (providerId: string) => void;
@@ -41,7 +41,7 @@ export default function ProviderSelector({
 
 	useEffect(() => {
 		const loadProviders = async () => {
-			const configManager = new ConfigManager();
+			const configManager = getConfig().getConfigManager();
 			let cachedProviders = configManager.getCachedProviders();
 
 			if (cachedProviders) {

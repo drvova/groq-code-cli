@@ -1,6 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import {Box, Text, useInput} from 'ink';
-import {ConfigManager} from '../../../utils/local-settings.js';
+import {getConfig} from '../../../core/config/index.js';
 import {fetchProviders} from '../../../utils/models-api.js';
 
 interface LoginProps {
@@ -15,7 +15,7 @@ export default function Login({onSubmit, onCancel}: LoginProps) {
 
 	useEffect(() => {
 		const loadProviderInfo = async () => {
-			const configManager = new ConfigManager();
+			const configManager = getConfig().getConfigManager();
 			const selectedProvider = configManager.getSelectedProvider();
 
 			if (!selectedProvider) {

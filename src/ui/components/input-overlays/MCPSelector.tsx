@@ -1,7 +1,8 @@
 import React, {useState, useEffect} from 'react';
 import {Box, Text, useInput} from 'ink';
-import {ConfigManager, MCPServerConfig} from '../../../utils/local-settings.js';
+import {MCPServerConfig} from '../../../utils/local-settings.js';
 import {MCPManager} from '../../../core/mcp-manager.js';
+import {getConfig} from '../../../core/config/index.js';
 
 interface MCPSelectorProps {
 	onCancel: () => void;
@@ -120,7 +121,7 @@ export default function MCPSelector({onCancel, onRefresh}: MCPSelectorProps) {
 	>('type');
 
 	const loadServers = async () => {
-		const configManager = new ConfigManager();
+		const configManager = getConfig().getConfigManager();
 		const mcpManager = MCPManager.getInstance();
 
 		await mcpManager.initializeServers();
@@ -227,7 +228,7 @@ export default function MCPSelector({onCancel, onRefresh}: MCPSelectorProps) {
 		// Toggle server enabled/disabled with 't'
 		if (input === 't' && selectedIndex < servers.length) {
 			const server = servers[selectedIndex];
-			const configManager = new ConfigManager();
+			const configManager = getConfig().getConfigManager();
 			configManager.toggleMCPServer(server.name);
 			loadServers();
 			if (onRefresh) onRefresh();
@@ -236,7 +237,7 @@ export default function MCPSelector({onCancel, onRefresh}: MCPSelectorProps) {
 		// Remove server with 'd'
 		if (input === 'd' && selectedIndex < servers.length) {
 			const server = servers[selectedIndex];
-			const configManager = new ConfigManager();
+			const configManager = getConfig().getConfigManager();
 			const mcpManager = MCPManager.getInstance();
 
 			mcpManager.stopServer(server.name).catch(() => {});
@@ -299,7 +300,7 @@ export default function MCPSelector({onCancel, onRefresh}: MCPSelectorProps) {
 		if (key.return) {
 			// Quick install selected popular server
 			const server = POPULAR_SERVERS[selectedIndex];
-			const configManager = new ConfigManager();
+			const configManager = getConfig().getConfigManager();
 			const mcpManager = MCPManager.getInstance();
 
 			const serverName =
@@ -366,7 +367,7 @@ export default function MCPSelector({onCancel, onRefresh}: MCPSelectorProps) {
 				setAddInputStep('prefix');
 			} else if (addInputStep === 'prefix') {
 				// Save the server
-				const configManager = new ConfigManager();
+				const configManager = getConfig().getConfigManager();
 				const mcpManager = MCPManager.getInstance();
 
 				let serverConfig: MCPServerConfig;

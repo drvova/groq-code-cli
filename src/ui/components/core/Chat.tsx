@@ -17,7 +17,7 @@ import MCPSelector from '../input-overlays/MCPSelector.js';
 import MaxIterationsContinue from '../input-overlays/MaxIterationsContinue.js';
 import ErrorRetry from '../input-overlays/ErrorRetry.js';
 import {handleSlashCommand} from '../../../commands/index.js';
-import {ConfigManager} from '../../../utils/local-settings.js';
+import {getConfig} from '../../../core/config/index.js';
 import {SessionManager} from '../../../utils/session-manager.js';
 
 interface ChatProps {
@@ -230,7 +230,7 @@ export default function Chat({agent}: ChatProps) {
 
 	const handleLogin = (apiKey: string) => {
 		setShowLogin(false);
-		const configManager = new ConfigManager();
+		const configManager = getConfig().getConfigManager();
 		const selectedProvider = configManager.getSelectedProvider() || 'groq';
 
 		// Save API key for the selected provider
@@ -255,7 +255,7 @@ export default function Chat({agent}: ChatProps) {
 
 	const handleSaveSession = (sessionName: string) => {
 		const sessionManager = new SessionManager();
-		const configManager = new ConfigManager();
+		const configManager = getConfig().getConfigManager();
 		const currentProvider = configManager.getSelectedProvider() || 'groq';
 		const currentModel =
 			configManager.getDefaultModel() || 'llama-3.3-70b-versatile';
@@ -288,7 +288,7 @@ export default function Chat({agent}: ChatProps) {
 
 	const handleRestoreSession = (session: any) => {
 		restoreSession(session);
-		const configManager = new ConfigManager();
+		const configManager = getConfig().getConfigManager();
 		configManager.setSelectedProvider(session.provider);
 		agent.setModel(session.model);
 
@@ -351,7 +351,7 @@ export default function Chat({agent}: ChatProps) {
 
 	const handleProviderSelect = (providerId: string) => {
 		setShowProviderSelector(false);
-		const configManager = new ConfigManager();
+		const configManager = getConfig().getConfigManager();
 		configManager.setSelectedProvider(providerId);
 		addMessage({
 			role: 'system',
@@ -488,7 +488,7 @@ export default function Chat({agent}: ChatProps) {
 							onSubmit={handleProviderSelect}
 							onCancel={handleProviderCancel}
 							currentProvider={
-								new ConfigManager().getSelectedProvider() || undefined
+								getConfig().getConfigManager().getSelectedProvider() || undefined
 							}
 						/>
 					) : showMCPSelector ? (

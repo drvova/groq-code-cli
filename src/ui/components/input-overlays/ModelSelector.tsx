@@ -4,7 +4,7 @@ import {
 	fetchOpenAICompatibleModels,
 	ModelInfo,
 } from '../../../utils/models-api.js';
-import {ConfigManager} from '../../../utils/local-settings.js';
+import {getConfig} from '../../../core/config/index.js';
 
 interface ModelSelectorProps {
 	onSubmit: (model: string) => void;
@@ -56,7 +56,7 @@ export default function ModelSelector({
 
 	useEffect(() => {
 		const loadModels = async () => {
-			const configManager = new ConfigManager();
+			const configManager = getConfig().getConfigManager();
 			const selectedProvider = configManager.getSelectedProvider();
 			let cachedModels = configManager.getCachedModels();
 
