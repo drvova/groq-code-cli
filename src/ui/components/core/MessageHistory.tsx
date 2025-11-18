@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {Box, Text} from 'ink';
-import {getHighlighter} from 'shiki';
+import {createHighlighter from 'shiki';
 import chalk from 'chalk';
 import {ChatMessage} from '../../hooks/useAgent.js';
 import ToolHistoryItem from '../display/ToolHistoryItem.js';
@@ -38,7 +38,7 @@ export default function MessageHistory({
 
 	// Initialize Shiki highlighter
 	useEffect(() => {
-		getHighlighter({
+		createHighlighter({
 			themes: ['dark-plus'],
 			langs: [
 				'javascript',
@@ -114,7 +114,7 @@ export default function MessageHistory({
 								switch (element.type) {
 									case 'code-block':
 										if (highlighter) {
-											const tokens = highlighter.codeToThemedTokens(
+											const tokens = highlighter.codeToTokens(
 												element.content,
 												element.language || 'text',
 											);

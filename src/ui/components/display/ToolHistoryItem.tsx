@@ -108,7 +108,7 @@ export default function ToolHistoryItem({ execution }: ToolHistoryItemProps) {
   };
 
   return (
-    <Box flexDirection="column" backgroundColor={getStatusColor()} paddingX={1}>
+    <Box flexDirection="column" style={{backgroundColor: getStatusColor()}} paddingX={1}>
       <Box>
         <Text color={getStatusColor()}>
           {getStatusIcon()} <Text bold>{name}</Text>
