@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {Box, Text} from 'ink';
-import {createHighlighter} from 'shiki';
+import {createHighlighter, type Highlighter} from 'shiki';
 import chalk from 'chalk';
 import {ChatMessage} from '../../hooks/useAgent.js';
 import ToolHistoryItem from '../display/ToolHistoryItem.js';
@@ -34,7 +34,7 @@ export default function MessageHistory({
 	usageData,
 }: MessageHistoryProps) {
 	const scrollRef = useRef<any>(null);
-	const [highlighter, setHighlighter] = useState(null);
+	const [highlighter, setHighlighter] = useState<Highlighter | null>(null);
 
 	// Initialize Shiki highlighter
 	useEffect(() => {
@@ -113,15 +113,15 @@ export default function MessageHistory({
 							markdownElements.map((element, index) => {
 								switch (element.type) {
 									case 'code-block':
-										if (highlighter) {
-											const tokens = highlighter.codeToTokens(
-												element.content,
-												element.language || 'text',
-											);
+										if (highlighter && element.language) {
+											const tokens = highlighter.codeToTokens(element.content, {
+												lang: element.language || 'text',
+												theme: 'dark-plus',
+											});
 											const highlighted = tokens
-												.map(line =>
+												.map((line: any) =>
 													line
-														.map(token =>
+														.map((token: any) =>
 															chalk.hex(token.color || '#cccccc')(
 																token.content,
 															),

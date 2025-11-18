@@ -218,7 +218,7 @@ export default function Chat({agent}: ChatProps) {
 	return (
 		<Box flexDirection="column" height="100%">
 			{/* Chat messages area */}
-			<Box flexGrow={1} flexDirection="column" paddingX={1} backgroundColor="blue">
+			<Box flexGrow={1} flexDirection="column" paddingX={1}>
 				<MessageHistory
 					messages={messages}
 					showReasoning={showReasoning}
@@ -246,7 +246,7 @@ export default function Chat({agent}: ChatProps) {
 			/>
 
 			{/* Input area */}
-			<Box backgroundColor="blue" paddingX={1}>
+			<Box paddingX={1}>
 				{pendingApproval ? (
 					<PendingToolApproval
 						toolName={pendingApproval.toolName}

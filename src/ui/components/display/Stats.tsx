@@ -46,13 +46,13 @@ export default function Stats({ usage }: StatsProps) {
   };
 
   return (
-    <Box flexDirection="column" style={{backgroundColor: "blue"}} paddingX={1}>
+    <Box flexDirection="column" paddingX={1}>
       <Box marginBottom={1}>
         <Text color="cyan" bold>📊 Session Stats</Text>
       </Box>
       
       <Box flexDirection="column" marginBottom={2}>
-        <Box justifyContent="flex-start" marginBottom={1} style={{backgroundColor: "black"}} paddingBottom={0}>
+        <Box justifyContent="flex-start" marginBottom={1} paddingBottom={0}>
           <Text color="gray">Performance</Text>
         </Box>
         <Box flexDirection="row" justifyContent="center" gap={4}>
@@ -68,7 +68,7 @@ export default function Stats({ usage }: StatsProps) {
       </Box>
       
       <Box flexDirection="column">
-        <Box justifyContent="flex-start" marginBottom={1} style={{backgroundColor: "black"}} paddingBottom={0}>
+        <Box justifyContent="flex-start" marginBottom={1} paddingBottom={0}>
           <Text color="gray">Token Usage</Text>
         </Box>
         <Box flexDirection="row" justifyContent="center" gap={4}>
