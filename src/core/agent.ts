@@ -586,6 +586,15 @@ export class Agent {
 			);
 		}
 
+		// Handle 429 Too Many Requests
+		if (
+			error instanceof Error &&
+			'status' in error &&
+			(error as any).status === 429
+		) {
+			errorMessage = `Rate limit exceeded (429). Please wait a moment before trying again.`;
+		}
+
 		if (this.onError) {
 			const shouldRetry = await this.onError(errorMessage);
 			if (shouldRetry) return true;
