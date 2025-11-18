@@ -7,13 +7,15 @@ import {
 	getReadBeforeEditError,
 } from '../tools/validators.js';
 import {
-	ALL_TOOL_SCHEMAS,
+	ToolRegistry,
+	ToolSchema,
 	DANGEROUS_TOOLS,
 	APPROVAL_REQUIRED_TOOLS,
 } from '../tools/tool-schemas.js';
 import {ConfigManager} from '../utils/local-settings.js';
 import {getProxyAgent, getProxyInfo} from '../utils/proxy-config.js';
 import {fetchProviders} from '../utils/models-api.js';
+import {MCPManager} from './mcp-manager.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -35,6 +37,8 @@ export class Agent {
 	private configManager: ConfigManager;
 	private proxyOverride?: string;
 	private currentProvider: string = 'groq';
+	private mcpManager: MCPManager;
+	private mcpToolsLoaded: boolean = false;
 	private onToolStart?: (name: string, args: Record<string, any>) => void;
 	private onToolEnd?: (name: string, result: any) => void;
 	private onToolApproval?: (
@@ -65,6 +69,7 @@ export class Agent {
 		this.model = model;
 		this.temperature = temperature;
 		this.configManager = new ConfigManager();
+		this.mcpManager = MCPManager.getInstance();
 		this.proxyOverride = proxyOverride;
 
 		// Set debug mode
@@ -316,6 +321,42 @@ When asked about your identity, you should identify yourself as a coding assista
 		this.messages = [...systemMessages, ...messages];
 	}
 
+	private async loadMCPTools(): Promise<void> {
+		if (this.mcpToolsLoaded) return;
+
+		try {
+			await this.mcpManager.initializeServers();
+			const mcpTools = this.mcpManager.getAllTools();
+
+			for (const tool of mcpTools) {
+				const toolSchema: ToolSchema = {
+					type: 'function',
+					function: {
+						name: tool.prefixedName,
+						description: tool.description || `MCP tool: ${tool.name}`,
+						parameters: {
+							type: 'object',
+							properties: tool.inputSchema.properties || {},
+							required: tool.inputSchema.required || [],
+						},
+					},
+				};
+
+				ToolRegistry.registerTool(toolSchema, 'approval_required');
+			}
+
+			this.mcpToolsLoaded = true;
+			debugLog(`Loaded ${mcpTools.length} MCP tools`);
+		} catch (error) {
+			debugLog('Failed to load MCP tools:', error);
+		}
+	}
+
+	public async refreshMCPTools(): Promise<void> {
+		this.mcpToolsLoaded = false;
+		await this.loadMCPTools();
+	}
+
 	public getMessages(): Message[] {
 		// Return non-system messages for session saving
 		return this.messages.filter(msg => msg.role !== 'system');
@@ -408,6 +449,9 @@ When asked about your identity, you should identify yourself as a coding assista
 		// Reset interrupt flag at the start of a new chat
 		this.isInterrupted = false;
 
+		// Load MCP tools if not already loaded
+		await this.loadMCPTools();
+
 		// Check API key on first message send
 		if (!this.client) {
 			debugLog('Initializing client...');
@@ -478,7 +522,7 @@ When asked about your identity, you should identify yourself as a coding assista
 					const requestBody = {
 						model: this.model,
 						messages: this.messages,
-						tools: ALL_TOOL_SCHEMAS,
+						tools: ToolRegistry.getAllSchemas(),
 						tool_choice: 'auto' as const,
 						temperature: this.temperature,
 						max_tokens: 8000,
@@ -503,7 +547,7 @@ When asked about your identity, you should identify yourself as a coding assista
 						{
 							model: this.model,
 							messages: this.messages as any,
-							tools: ALL_TOOL_SCHEMAS,
+							tools: ToolRegistry.getAllSchemas(),
 							tool_choice: 'auto',
 							temperature: this.temperature,
 							max_tokens: 8000,
@@ -763,8 +807,9 @@ When asked about your identity, you should identify yourself as a coding assista
 			}
 
 			// Check if tool needs approval (only after validation passes)
-			const isDangerous = DANGEROUS_TOOLS.includes(toolName);
-			const requiresApproval = APPROVAL_REQUIRED_TOOLS.includes(toolName);
+			const toolCategory = ToolRegistry.getToolCategory(toolName);
+			const isDangerous = toolCategory === 'dangerous';
+			const requiresApproval = toolCategory === 'approval_required';
 			const needsApproval = isDangerous || requiresApproval;
 
 			// For APPROVAL_REQUIRED_TOOLS, check if session auto-approval is enabled
@@ -829,8 +874,40 @@ When asked about your identity, you should identify yourself as a coding assista
 				}
 			}
 
-			// Execute tool
-			const result = await executeTool(toolName, toolArgs);
+			// Execute tool - check if it's an MCP tool or built-in tool
+			let result: Record<string, any>;
+
+			// Check if this is an MCP tool (contains colon in prefixed name)
+			const mcpTools = this.mcpManager.getAllTools();
+			const isMCPTool = mcpTools.some(t => t.prefixedName === toolName);
+
+			if (isMCPTool) {
+				try {
+					const mcpResult = await this.mcpManager.callTool(toolName, toolArgs);
+
+					// Convert MCP result format to our tool result format
+					const textContent = mcpResult.content
+						.filter(c => c.type === 'text')
+						.map(c => c.text)
+						.join('\n');
+
+					result = {
+						success: !mcpResult.isError,
+						output: textContent,
+						error: mcpResult.isError ? textContent : undefined,
+					};
+				} catch (error) {
+					result = {
+						success: false,
+						error: `MCP tool error: ${
+							error instanceof Error ? error.message : String(error)
+						}`,
+					};
+				}
+			} else {
+				// Execute built-in tool
+				result = await executeTool(toolName, toolArgs);
+			}
 
 			// Notify UI about tool completion
 			if (this.onToolEnd) {

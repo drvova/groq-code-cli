@@ -8,12 +8,14 @@ import {reasoningCommand} from './definitions/reasoning.js';
 import {statsCommand} from './definitions/stats.js';
 import {resumeCommand} from './definitions/resume.js';
 import {newCommand} from './definitions/new.js';
+import {mcpCommand} from './definitions/mcp.js';
 
 const availableCommands: CommandDefinition[] = [
 	helpCommand,
 	loginCommand,
 	modelCommand,
 	providerCommand,
+	mcpCommand,
 	newCommand,
 	resumeCommand,
 	initCommand,

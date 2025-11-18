@@ -12,6 +12,7 @@ import Login from '../input-overlays/Login.js';
 import ModelSelector from '../input-overlays/ModelSelector.js';
 import ProviderSelector from '../input-overlays/ProviderSelector.js';
 import SessionSelector from '../input-overlays/SessionSelector.js';
+import MCPSelector from '../input-overlays/MCPSelector.js';
 import MaxIterationsContinue from '../input-overlays/MaxIterationsContinue.js';
 import ErrorRetry from '../input-overlays/ErrorRetry.js';
 import {handleSlashCommand} from '../../../commands/index.js';
@@ -89,6 +90,7 @@ export default function Chat({agent}: ChatProps) {
 	const [showModelSelector, setShowModelSelector] = useState(false);
 	const [showProviderSelector, setShowProviderSelector] = useState(false);
 	const [showSessionSelector, setShowSessionSelector] = useState(false);
+	const [showMCPSelector, setShowMCPSelector] = useState(false);
 	const [animationFrame, setAnimationFrame] = useState(0);
 
 	// Handle global keyboard shortcuts
@@ -136,7 +138,8 @@ export default function Chat({agent}: ChatProps) {
 				!pendingError &&
 				!showLogin &&
 				!showModelSelector &&
-				!showProviderSelector,
+				!showProviderSelector &&
+				!showMCPSelector,
 		);
 	}, [
 		isProcessing,
@@ -145,6 +148,7 @@ export default function Chat({agent}: ChatProps) {
 		showLogin,
 		showModelSelector,
 		showProviderSelector,
+		showMCPSelector,
 	]);
 
 	// Animation frame update for spinner
@@ -181,6 +185,7 @@ export default function Chat({agent}: ChatProps) {
 					setShowModelSelector,
 					setShowProviderSelector,
 					setShowSessionSelector,
+					setShowMCPSelector,
 					toggleReasoning,
 					showReasoning,
 					sessionStats,
@@ -344,6 +349,18 @@ export default function Chat({agent}: ChatProps) {
 		});
 	};
 
+	const handleMCPRefresh = async () => {
+		await agent.refreshMCPTools();
+	};
+
+	const handleMCPCancel = () => {
+		setShowMCPSelector(false);
+		addMessage({
+			role: 'system',
+			content: 'MCP server management closed.',
+		});
+	};
+
 	const handleSessionSelect = (sessionId: string) => {
 		setShowSessionSelector(false);
 		const sessionManager = new SessionManager();
@@ -454,6 +471,11 @@ export default function Chat({agent}: ChatProps) {
 							currentProvider={
 								new ConfigManager().getSelectedProvider() || undefined
 							}
+						/>
+					) : showMCPSelector ? (
+						<MCPSelector
+							onCancel={handleMCPCancel}
+							onRefresh={handleMCPRefresh}
 						/>
 					) : showModelSelector ? (
 						<ModelSelector

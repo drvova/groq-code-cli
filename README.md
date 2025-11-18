@@ -128,9 +128,128 @@ Priority: `--proxy` > `HTTPS_PROXY` > `HTTP_PROXY`
 - `/help` - Show help and available commands
 - `/login` - Login with your credentials
 - `/model` - Select your Groq model
+- `/provider` - Select your AI provider
+- `/mcp` - Manage MCP (Model Context Protocol) servers
+- `/new` - Start a new chat session
+- `/resume` - Resume a previous session
+- `/init` - Initialize project context
 - `/clear` - Clear chat history and context
 - `/reasoning` - Toggle display of reasoning content in messages
 - `/stats` - Display session statistics and token usage
+
+### MCP (Model Context Protocol) Support
+
+This CLI supports the Model Context Protocol, allowing you to extend functionality with MCP servers that provide additional tools and resources.
+
+#### What is MCP?
+
+MCP (Model Context Protocol) is a standard protocol that allows AI applications to connect to external tools and data sources. MCP servers can provide:
+- Additional tools (web search, database access, etc.)
+- Resource access (files, APIs, knowledge bases)
+- Custom integrations specific to your workflow
+
+#### Managing MCP Servers
+
+Use the `/mcp` command to open the MCP server management interface:
+
+```bash
+# In the CLI, type:
+/mcp
+```
+
+**Available Actions:**
+- **↑/↓ Navigate** - Move between servers
+- **Enter** - Add new server
+- **t** - Toggle server enabled/disabled
+- **d** - Delete server
+- **r** - Restart server
+- **ESC** - Exit MCP management
+
+#### Adding an MCP Server
+
+When adding a new server, you'll be prompted for:
+
+1. **Server name**: A unique identifier (e.g., "brave-search")
+2. **Command**: The executable to run (e.g., "npx")
+3. **Arguments**: Command arguments (e.g., "-y @modelcontextprotocol/server-brave-search")
+4. **Tool prefix** (optional): Prefix for tool names to avoid conflicts (e.g., "brave")
+
+**Example: Adding Brave Search**
+
+```
+Server name: brave-search
+Command: npx
+Arguments: -y @modelcontextprotocol/server-brave-search
+Tool prefix: brave
+```
+
+This will create tools like `brave:web_search` that the AI can use.
+
+#### Popular MCP Servers
+
+- **@modelcontextprotocol/server-brave-search** - Web search via Brave
+- **@modelcontextprotocol/server-filesystem** - File system access
+- **@modelcontextprotocol/server-github** - GitHub API integration
+- **@modelcontextprotocol/server-postgres** - PostgreSQL database access
+- **@modelcontextprotocol/server-sqlite** - SQLite database access
+
+Find more servers at: https://github.com/modelcontextprotocol/servers
+
+#### Manual Configuration
+
+You can also manually configure MCP servers by editing `~/.groq/local-settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "brave-search": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+      "toolPrefix": "brave",
+      "disabled": false
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/allowed/directory"],
+      "env": {
+        "CUSTOM_VAR": "value"
+      }
+    }
+  }
+}
+```
+
+**Configuration Options:**
+- `command`: Executable to run the MCP server
+- `args`: Array of command-line arguments
+- `toolPrefix`: Optional prefix for tool names (prevents naming conflicts)
+- `disabled`: Set to `true` to disable without removing
+- `env`: Optional environment variables for the server
+
+#### How MCP Tools Work
+
+Once an MCP server is connected:
+
+1. The CLI automatically discovers tools provided by the server
+2. Tools are registered with their prefixed names (e.g., `brave:web_search`)
+3. The AI model can call these tools just like built-in tools
+4. All MCP tools require approval before execution (for security)
+
+#### Troubleshooting
+
+**Server won't connect:**
+- Check that the command and arguments are correct
+- Ensure the MCP server package is installed (or use `npx` for automatic installation)
+- Check `debug-agent.log` (run CLI with `-d` flag) for detailed error messages
+
+**Tools not appearing:**
+- Restart the server using the `r` key in `/mcp` management
+- Verify the server is marked as connected (green ✓)
+- Check that `disabled` is not set to `true`
+
+**Naming conflicts:**
+- Use the `toolPrefix` option to namespace tools from different servers
+- Example: prefix "brave" creates `brave:web_search` instead of `web_search`
 
 
 ## Development

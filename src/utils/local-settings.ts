@@ -3,12 +3,21 @@ import * as path from 'path';
 import * as os from 'os';
 import {ModelInfo, ProviderInfo} from './models-api';
 
+export interface MCPServerConfig {
+	command: string;
+	args: string[];
+	env?: Record<string, string>;
+	disabled?: boolean;
+	toolPrefix?: string; // Optional prefix for tool names (e.g., 'brave' -> 'brave:web_search')
+}
+
 interface Config {
 	groqApiKey?: string; // Legacy - migrated to providers
 	providers?: {[providerId: string]: string}; // providerId -> API key
 	selectedProvider?: string;
 	defaultModel?: string;
 	groqProxy?: string;
+	mcpServers?: {[serverName: string]: MCPServerConfig};
 }
 
 interface ProvidersCache {
@@ -262,6 +271,50 @@ export class ConfigManager {
 			this.writeConfig(config);
 		} catch (error) {
 			throw new Error(`Failed to save provider API key: ${error}`);
+		}
+	}
+
+	public getMCPServers(): {[serverName: string]: MCPServerConfig} {
+		const config = this.readConfig();
+		return config.mcpServers || {};
+	}
+
+	public setMCPServer(serverName: string, serverConfig: MCPServerConfig): void {
+		try {
+			const config = this.readConfig();
+			if (!config.mcpServers) config.mcpServers = {};
+			config.mcpServers[serverName] = serverConfig;
+			this.writeConfig(config);
+		} catch (error) {
+			throw new Error(`Failed to save MCP server config: ${error}`);
+		}
+	}
+
+	public removeMCPServer(serverName: string): void {
+		try {
+			const config = this.readConfig();
+			if (config.mcpServers) {
+				delete config.mcpServers[serverName];
+				if (Object.keys(config.mcpServers).length === 0) {
+					delete config.mcpServers;
+				}
+				this.writeConfig(config);
+			}
+		} catch (error) {
+			throw new Error(`Failed to remove MCP server: ${error}`);
+		}
+	}
+
+	public toggleMCPServer(serverName: string): void {
+		try {
+			const config = this.readConfig();
+			if (config.mcpServers?.[serverName]) {
+				config.mcpServers[serverName].disabled =
+					!config.mcpServers[serverName].disabled;
+				this.writeConfig(config);
+			}
+		} catch (error) {
+			throw new Error(`Failed to toggle MCP server: ${error}`);
 		}
 	}
 }
