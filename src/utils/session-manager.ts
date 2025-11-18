@@ -20,6 +20,8 @@ export interface Session {
 	stats: SessionStats;
 	provider: string;
 	model: string;
+	contextSnapshot?: string;
+	contextPath?: string;
 }
 
 export interface SessionMetadata {
@@ -91,6 +93,8 @@ export class SessionManager {
 		stats: SessionStats,
 		provider: string,
 		model: string,
+		contextSnapshot?: string,
+		contextPath?: string,
 	): string {
 		const sessionId = this.generateSessionId();
 		const session: Session = {
@@ -103,6 +107,8 @@ export class SessionManager {
 			stats,
 			provider,
 			model,
+			contextSnapshot,
+			contextPath,
 		};
 
 		this.ensureSessionsDir();

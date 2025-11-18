@@ -240,6 +240,8 @@ export default function Chat({agent}: ChatProps) {
 		const agentMessages = agent.getMessages();
 		const uiMessages = messages;
 
+		const currentContext = agent.getCurrentContext();
+
 		sessionManager.saveSession(
 			sessionName,
 			agentMessages,
@@ -247,11 +249,17 @@ export default function Chat({agent}: ChatProps) {
 			sessionStats,
 			currentProvider,
 			currentModel,
+			currentContext?.content,
+			currentContext?.path,
 		);
 
 		addMessage({
 			role: 'system',
-			content: `Session saved: **${sessionName}**\n\nMessages: ${uiMessages.length} | Tokens: ${sessionStats.totalTokens}`,
+			content: `Session saved: **${sessionName}**\n\nMessages: ${
+				uiMessages.length
+			} | Tokens: ${sessionStats.totalTokens}${
+				currentContext ? `\nContext: ${currentContext.path}` : ''
+			}`,
 		});
 	};
 
@@ -260,6 +268,25 @@ export default function Chat({agent}: ChatProps) {
 		const configManager = new ConfigManager();
 		configManager.setSelectedProvider(session.provider);
 		agent.setModel(session.model);
+
+		if (session.contextSnapshot && session.contextPath) {
+			const currentContext = agent.getCurrentContext();
+			const contextChanged =
+				!currentContext || currentContext.content !== session.contextSnapshot;
+
+			if (contextChanged) {
+				agent.restoreContext(session.contextSnapshot, session.contextPath);
+				addMessage({
+					role: 'system',
+					content: `⚠ Context restored from session snapshot.\n\nThe current project context has changed since this session was saved. Using original context to preserve conversation coherence.`,
+				});
+			} else {
+				addMessage({
+					role: 'system',
+					content: `✓ Context unchanged since session was saved.`,
+				});
+			}
+		}
 
 		clearSessionStats();
 		addSessionTokens({

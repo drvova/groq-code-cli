@@ -321,6 +321,49 @@ When asked about your identity, you should identify yourself as a coding assista
 		return this.messages.filter(msg => msg.role !== 'system');
 	}
 
+	public getCurrentContext(): {content: string; path: string} | null {
+		try {
+			const explicitContextFile = process.env.GROQ_CONTEXT_FILE;
+			const baseDir = process.env.GROQ_CONTEXT_DIR || process.cwd();
+			const contextPath =
+				explicitContextFile || path.join(baseDir, '.groq', 'context.md');
+
+			if (fs.existsSync(contextPath)) {
+				const content = fs.readFileSync(contextPath, 'utf-8');
+				return {content, path: contextPath};
+			}
+			return null;
+		} catch (error) {
+			return null;
+		}
+	}
+
+	public restoreContext(contextContent: string, contextPath: string): void {
+		// Remove old context message if exists
+		this.messages = this.messages.filter(
+			msg =>
+				!(
+					msg.role === 'system' &&
+					msg.content.includes('Project context loaded')
+				),
+		);
+
+		// Add restored context
+		const contextLimit = parseInt(
+			process.env.GROQ_CONTEXT_LIMIT || '20000',
+			10,
+		);
+		const trimmed =
+			contextContent.length > contextLimit
+				? contextContent.slice(0, contextLimit) + '\n... [truncated]'
+				: contextContent;
+
+		this.messages.push({
+			role: 'system',
+			content: `Project context loaded from ${contextPath} (session snapshot). Use this as high-level reference when reasoning about the repository.\n\n${trimmed}`,
+		});
+	}
+
 	public setModel(model: string): void {
 		this.model = model;
 		// Save as default model
