@@ -5,6 +5,7 @@ import chalk from 'chalk';
 import {ChatMessage} from '../../hooks/useAgent.js';
 import ToolHistoryItem from '../display/ToolHistoryItem.js';
 import Stats from '../display/Stats.js';
+import {formatTimestamp} from '../display/utils/formatting.js';
 import {
 	parseMarkdown,
 	MarkdownElement,
@@ -75,14 +76,6 @@ export default function MessageHistory({
 			scrollRef.current.scrollToBottom?.();
 		}
 	}, [messages.length]);
-
-	const formatTimestamp = (date: Date) => {
-		return date.toLocaleTimeString('en-US', {
-			hour12: false,
-			hour: '2-digit',
-			minute: '2-digit',
-		});
-	};
 
 	const renderMessage = (message: ChatMessage) => {
 		const timestamp = formatTimestamp(message.timestamp);

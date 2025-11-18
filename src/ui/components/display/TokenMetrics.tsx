@@ -34,9 +34,10 @@ export default function TokenMetrics({
 				return;
 			}
 
-			// Calculate elapsed time minus paused time
 			const currentElapsed = Date.now() - startTime.getTime() - pausedTime;
-			setDisplayTime(`${(currentElapsed / 1000).toFixed(1)}s`);
+			setDisplayTime(
+				`${(currentElapsed / DISPLAY_CONFIG.MS_PER_SECOND).toFixed(1)}s`,
+			);
 		};
 
 		updateDisplay();
@@ -70,11 +71,12 @@ export default function TokenMetrics({
 		return () => clearInterval(interval);
 	}, [isActive, isPaused]);
 
-	// Update display when request completes
 	useEffect(() => {
 		if (!isActive && endTime && startTime) {
 			const finalElapsed = endTime.getTime() - startTime.getTime() - pausedTime;
-			setDisplayTime(`${(finalElapsed / 1000).toFixed(1)}s`);
+			setDisplayTime(
+				`${(finalElapsed / DISPLAY_CONFIG.MS_PER_SECOND).toFixed(1)}s`,
+			);
 		}
 	}, [isActive, endTime, startTime, pausedTime]);
 

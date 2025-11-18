@@ -4,6 +4,7 @@ import {
 	SessionManager,
 	SessionMetadata,
 } from '../../../utils/session-manager.js';
+import {formatTokenCount} from '../display/utils/formatting.js';
 
 interface SessionSelectorProps {
 	onSubmit: (sessionId: string) => void;
@@ -98,12 +99,6 @@ export default function SessionSelector({
 		return date.toLocaleDateString();
 	};
 
-	const formatTokens = (tokens: number): string => {
-		if (tokens >= 1000000) return `${(tokens / 1000000).toFixed(1)}M`;
-		if (tokens >= 1000) return `${(tokens / 1000).toFixed(1)}K`;
-		return tokens.toString();
-	};
-
 	const halfVisible = Math.floor(VISIBLE_ITEM_COUNT / 2);
 	const startIndex = Math.max(0, selectedIndex - halfVisible);
 	const endIndex = Math.min(sessions.length, startIndex + VISIBLE_ITEM_COUNT);
@@ -137,7 +132,7 @@ export default function SessionSelector({
 								<Box marginLeft={2}>
 									<Text color="gray" dimColor>
 										{formatDate(session.timestamp)} • {session.messageCount}{' '}
-										msgs • {formatTokens(session.totalTokens)} tokens •{' '}
+										msgs • {formatTokenCount(session.totalTokens)} tokens •{' '}
 										{session.provider}/{session.model}
 									</Text>
 								</Box>

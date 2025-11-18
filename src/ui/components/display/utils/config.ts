@@ -11,6 +11,9 @@ export const DISPLAY_CONFIG = {
 	TOKEN_DISPLAY_UPDATE: 100,
 	TOKEN_ANIMATION_CYCLE: 2000,
 
+	// Time conversion constants
+	MS_PER_SECOND: 1000,
+
 	// Diff engine context lines
 	DIFF_CONTEXT_LINES: 5,
 
