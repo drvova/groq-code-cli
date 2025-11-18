@@ -220,11 +220,35 @@ You can also manually configure MCP servers by editing `~/.groq/local-settings.j
 ```
 
 **Configuration Options:**
-- `command`: Executable to run the MCP server
-- `args`: Array of command-line arguments
+- `type`: Transport type - `"stdio"` for process-based or `"http"` for URL-based servers
+- `command`: Executable to run the MCP server (stdio only)
+- `args`: Array of command-line arguments (stdio only)
+- `url`: HTTP endpoint URL (http only)
+- `headers`: Optional HTTP headers (http only)
+- `apiKey`: Optional API key for authentication (http only)
 - `toolPrefix`: Optional prefix for tool names (prevents naming conflicts)
 - `disabled`: Set to `true` to disable without removing
-- `env`: Optional environment variables for the server
+- `env`: Optional environment variables for the server (stdio only)
+
+#### Remote MCP Servers (HTTP)
+
+Some MCP servers are hosted remotely and accessed via HTTP/SSE. Use the `mcp-remote` package to connect:
+
+```json
+{
+  "mcpServers": {
+    "exa": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.exa.ai/mcp"],
+      "toolPrefix": "exa",
+      "disabled": false
+    }
+  }
+}
+```
+
+**Note:** Many remote MCP servers require `mcp-remote` as an intermediary rather than direct HTTP connections. If you encounter SSE connection errors with an HTTP server, try using the stdio transport with `mcp-remote` instead.
 
 #### How MCP Tools Work
 
