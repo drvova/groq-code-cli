@@ -1,14 +1,8 @@
-import {executeTool} from '../tools/tools.js';
 import {
 	validateReadBeforeEdit,
 	getReadBeforeEditError,
 } from '../tools/validators.js';
-import {
-	ToolRegistry,
-	ToolSchema,
-	DANGEROUS_TOOLS,
-	APPROVAL_REQUIRED_TOOLS,
-} from '../tools/tool-schemas.js';
+import {ToolRegistry, ToolSchema, initializeAllTools} from '../tools/index.js';
 import {ConfigManager} from '../utils/local-settings.js';
 import {getProxyAgent, getProxyInfo} from '../utils/proxy-config.js';
 import {MCPManager} from './mcp-manager.js';
@@ -61,6 +55,9 @@ export class Agent {
 		this.configManager = new ConfigManager();
 		this.mcpManager = MCPManager.getInstance();
 		this.proxyOverride = proxyOverride;
+
+		// Initialize all tool categories
+		initializeAllTools();
 
 		// Set debug mode
 		debugEnabled = debug || false;
@@ -284,7 +281,25 @@ When asked about your identity, you should identify yourself as a coding assista
 					},
 				};
 
-				ToolRegistry.registerTool(toolSchema, 'approval_required');
+				// Create executor that calls MCP
+				const executor = async (args: Record<string, any>) => {
+					const mcpResult = await this.mcpManager.callTool(
+						tool.prefixedName,
+						args,
+					);
+					const textContent = mcpResult.content
+						.filter(c => c.type === 'text')
+						.map(c => c.text)
+						.join('\n');
+
+					return {
+						success: !mcpResult.isError,
+						output: textContent,
+						error: mcpResult.isError ? textContent : undefined,
+					};
+				};
+
+				ToolRegistry.registerTool(toolSchema, executor, 'approval_required');
 			}
 
 			this.mcpToolsLoaded = true;
@@ -840,8 +855,8 @@ When asked about your identity, you should identify yourself as a coding assista
 					};
 				}
 			} else {
-				// Execute built-in tool
-				result = await executeTool(toolName, toolArgs);
+				// Execute built-in tool via registry
+				result = await ToolRegistry.executeTool(toolName, toolArgs);
 			}
 
 			// Notify UI about tool completion
