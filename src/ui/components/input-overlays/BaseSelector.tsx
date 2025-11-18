@@ -67,6 +67,10 @@ export default function BaseSelector<T extends SelectorItem>({
 			setSelectedIndex(prev => Math.max(0, prev - 1));
 		} else if (key.downArrow) {
 			setSelectedIndex(prev => Math.min(items.length - 1, prev + 1));
+		} else if (key.pageUp) {
+			setSelectedIndex(prev => Math.max(0, prev - visibleItemCount));
+		} else if (key.pageDown) {
+			setSelectedIndex(prev => Math.min(items.length - 1, prev + visibleItemCount));
 		}
 	});
 
@@ -102,6 +106,14 @@ export default function BaseSelector<T extends SelectorItem>({
 	const adjustedStart = Math.max(0, endIndex - visibleItemCount);
 	const visibleItems = items.slice(adjustedStart, endIndex);
 
+	// Scrollbar logic
+	const showScrollbar = items.length > visibleItemCount;
+	const scrollbarHeight = visibleItems.length;
+	const scrollProgress = adjustedStart / (items.length - visibleItemCount);
+	const thumbSize = Math.max(1, Math.round((visibleItemCount / items.length) * scrollbarHeight));
+	const availableTrack = scrollbarHeight - thumbSize;
+	const thumbPosition = Math.round(scrollProgress * availableTrack);
+
 	return (
 		<Box flexDirection="column">
 			<Box marginBottom={1}>
@@ -116,37 +128,51 @@ export default function BaseSelector<T extends SelectorItem>({
 				</Box>
 			)}
 
-			<Box flexDirection="column">
-				{visibleItems.map((item, index) => {
-					const actualIndex = adjustedStart + index;
-					const isSelected = actualIndex === selectedIndex;
-					
-					if (renderItem) {
+			<Box flexDirection="row">
+				<Box flexDirection="column" flexGrow={1}>
+					{visibleItems.map((item, index) => {
+						const actualIndex = adjustedStart + index;
+						const isSelected = actualIndex === selectedIndex;
+						
+						if (renderItem) {
+							return (
+								<Box key={item.id}>
+									{renderItem(item, isSelected)}
+								</Box>
+							);
+						}
+
 						return (
 							<Box key={item.id}>
-								{renderItem(item, isSelected)}
+								<Text
+									color={isSelected ? 'black' : 'white'}
+									backgroundColor={isSelected ? 'cyan' : undefined}
+									bold={isSelected}
+								>
+									{isSelected ? '>' : ' '} {item.label}
+								</Text>
 							</Box>
 						);
-					}
-
-					return (
-						<Box key={item.id}>
-							<Text
-								color={isSelected ? 'black' : 'white'}
-								backgroundColor={isSelected ? 'cyan' : undefined}
-								bold={isSelected}
-							>
-								{isSelected ? '>' : ' '} {item.label}
-							</Text>
-						</Box>
-					);
-				})}
+					})}
+				</Box>
+				{showScrollbar && (
+					<Box flexDirection="column" marginLeft={1}>
+						{Array.from({length: scrollbarHeight}).map((_, i) => {
+							const isThumb = i >= thumbPosition && i < thumbPosition + thumbSize;
+							return (
+								<Text key={i} color={isThumb ? 'cyan' : 'gray'}>
+									{isThumb ? '█' : '│'}
+								</Text>
+							);
+						})}
+					</Box>
+				)}
 			</Box>
 
 			{items.length > visibleItemCount && (
 				<Box marginTop={1}>
 					<Text color="gray" dimColor>
-						↑/↓ to scroll
+						↑/↓/PgUp/PgDn to scroll
 					</Text>
 				</Box>
 			)}
