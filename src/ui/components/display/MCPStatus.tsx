@@ -31,13 +31,16 @@ export default function MCPStatus({refreshInterval = 2000}: MCPStatusProps) {
 		return () => clearInterval(interval);
 	}, [refreshInterval]);
 
-	// Hide indicator if no enabled servers configured
-	if (totalServers === 0) return null;
-
 	let color: string;
 	let statusText: string;
+	let dimColor = false;
 
-	if (connectedCount === 0) {
+	if (totalServers === 0) {
+		// No servers configured - show greyed out indicator
+		color = 'gray';
+		statusText = 'MCP: -';
+		dimColor = true;
+	} else if (connectedCount === 0) {
 		color = 'red';
 		statusText = hasErrors
 			? `MCP: OFF (${totalServers} error${totalServers > 1 ? 's' : ''})`
@@ -50,5 +53,9 @@ export default function MCPStatus({refreshInterval = 2000}: MCPStatusProps) {
 		statusText = `MCP: ${connectedCount}/${totalServers}`;
 	}
 
-	return <Text color={color}>{statusText}</Text>;
+	return (
+		<Text color={color} dimColor={dimColor}>
+			{statusText}
+		</Text>
+	);
 }
