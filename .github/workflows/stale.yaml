@@ -1,6 +1,6 @@
 #######################################################################
 #                            DO NOT EDIT DIRECTLY.                    #
-# This file is managed by Terraform at https://github.com/groq/github #
+# This file is managed by Terraform at https://github.com/github #
 #######################################################################
 
 name: "Close stale PRs"
