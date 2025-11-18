@@ -82,6 +82,7 @@ export default function Chat({agent}: ChatProps) {
 	const [showInput, setShowInput] = useState(true);
 	const [showLogin, setShowLogin] = useState(false);
 	const [showModelSelector, setShowModelSelector] = useState(false);
+	const [animationFrame, setAnimationFrame] = useState(0);
 
 	// Handle global keyboard shortcuts
 	useInput((input, key) => {
@@ -136,6 +137,14 @@ export default function Chat({agent}: ChatProps) {
 		showLogin,
 		showModelSelector,
 	]);
+
+	// Animation frame update for spinner
+	useEffect(() => {
+		const interval = setInterval(() => {
+			setAnimationFrame(prev => (prev + 1) % 5);
+		}, 200);
+		return () => clearInterval(interval);
+	}, []);
 
 	const handleSendMessage = async (message: string) => {
 		if (message.trim() && !isProcessing) {
@@ -286,13 +295,13 @@ export default function Chat({agent}: ChatProps) {
 				) : (
 					<Box>
 						<Text color="cyan">
-							{['█', '▓', '▒', '░', ' '][Math.floor(Date.now() / 200) % 5]}
+							{['█', '▓', '▒', '░', ' '][animationFrame]}
 						</Text>
 						<Text color="gray" dimColor>
 							Processing
 						</Text>
 						<Text color="cyan">
-							{[' ', '░', '▒', '▓', '█'][Math.floor(Date.now() / 200) % 5]}
+							{[' ', '░', '▒', '▓', '█'][animationFrame]}
 						</Text>
 					</Box>
 				)}
