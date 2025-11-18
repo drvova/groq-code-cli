@@ -1,95 +1,147 @@
-import React, { useState } from 'react';
-import { Box, Text, useInput } from 'ink';
+import React, {useState, useEffect} from 'react';
+import {Box, Text, useInput} from 'ink';
+import {
+	fetchOpenAICompatibleModels,
+	ModelInfo,
+} from '../../../utils/models-api.js';
+import {ConfigManager} from '../../../utils/local-settings.js';
 
 interface ModelSelectorProps {
-  onSubmit: (model: string) => void;
-  onCancel: () => void;
-  currentModel?: string;
+	onSubmit: (model: string) => void;
+	onCancel: () => void;
+	currentModel?: string;
 }
 
-const AVAILABLE_MODELS = [
-  { id: 'moonshotai/kimi-k2-instruct-0905', name: 'Kimi K2 Instruct 09-05', description: 'Enhanced coding capabilities' },
-  { id: 'openai/gpt-oss-120b', name: 'GPT OSS 120B', description: 'Fast, capable, and cheap model' },
-  { id: 'openai/gpt-oss-20b', name: 'GPT OSS 20B', description: 'Fastest and cheapest model' },
-  { id: 'qwen/qwen3-32b', name: 'Qwen 3 32B', description: '' },
-  { id: 'meta-llama/llama-4-maverick-17b-128e-instruct', name: 'Llama 4 Maverick', description: '' },
-  { id: 'meta-llama/llama-4-scout-17b-16e-instruct', name: 'Llama 4 Scout', description: '' },
-
+const FALLBACK_MODELS: ModelInfo[] = [
+	{
+		id: 'moonshotai/kimi-k2-instruct-0905',
+		name: 'Kimi K2 Instruct',
+		provider: 'Moonshot AI',
+		providerId: 'moonshotai',
+		contextWindow: 128000,
+		supportsTools: true,
+		supportsVision: false,
+	},
+	{
+		id: 'openai/gpt-oss-120b',
+		name: 'GPT OSS 120B',
+		provider: 'OpenAI',
+		providerId: 'openai',
+		contextWindow: 128000,
+		supportsTools: true,
+		supportsVision: false,
+	},
+	{
+		id: 'openai/gpt-oss-20b',
+		name: 'GPT OSS 20B',
+		provider: 'OpenAI',
+		providerId: 'openai',
+		contextWindow: 128000,
+		supportsTools: true,
+		supportsVision: false,
+	},
 ];
 
-export default function ModelSelector({ onSubmit, onCancel, currentModel }: ModelSelectorProps) {
-  const [selectedIndex, setSelectedIndex] = useState(() => {
-    const currentIndex = AVAILABLE_MODELS.findIndex(model => model.id === currentModel);
-    return currentIndex >= 0 ? currentIndex : 0;
-  });
+export default function ModelSelector({
+	onSubmit,
+	onCancel,
+	currentModel,
+}: ModelSelectorProps) {
+	const [models, setModels] = useState<ModelInfo[]>(FALLBACK_MODELS);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [selectedIndex, setSelectedIndex] = useState(0);
 
-  useInput((input, key) => {
-    if (key.return) {
-      onSubmit(AVAILABLE_MODELS[selectedIndex].id);
-      return;
-    }
+	useEffect(() => {
+		const loadModels = async () => {
+			const configManager = new ConfigManager();
+			let cachedModels = configManager.getCachedModels();
 
-    if (key.escape) {
-      onCancel();
-      return;
-    }
+			if (cachedModels) {
+				setModels(cachedModels);
+				setLoading(false);
+				updateSelectedIndex(cachedModels);
+				return;
+			}
 
-    if (key.upArrow) {
-      setSelectedIndex(prev => Math.max(0, prev - 1));
-      return;
-    }
+			try {
+				const fetchedModels = await fetchOpenAICompatibleModels();
+				if (fetchedModels.length > 0) {
+					setModels(fetchedModels);
+					configManager.setCachedModels(fetchedModels);
+					updateSelectedIndex(fetchedModels);
+				}
+			} catch (err) {
+				setError(err instanceof Error ? err.message : 'Failed to fetch models');
+			} finally {
+				setLoading(false);
+			}
+		};
 
-    if (key.downArrow) {
-      setSelectedIndex(prev => Math.min(AVAILABLE_MODELS.length - 1, prev + 1));
-      return;
-    }
+		const updateSelectedIndex = (modelList: ModelInfo[]) => {
+			const currentIndex = modelList.findIndex(m => m.id === currentModel);
+			setSelectedIndex(currentIndex >= 0 ? currentIndex : 0);
+		};
 
-    if (key.ctrl && input === 'c') {
-      onCancel();
-      return;
-    }
-  });
+		loadModels();
+	}, [currentModel]);
 
-  return (
-    <Box flexDirection="column">
-      <Box marginBottom={1}>
-        <Text color="cyan" bold>Select Model</Text>
-      </Box>
-      
-      <Box marginBottom={1}>
-        <Text color="gray" dimColor>
-          Choose a model for your conversation. The chat will be cleared when you switch models.
-        </Text>
-      </Box>
+	useInput((input, key) => {
+		if (loading) return;
 
-      <Box marginBottom={1}>
-        <Text color="gray" dimColor>
-          Visit <Text underline>https://groq.com/pricing</Text> for more information.
-        </Text>
-      </Box>
+		if (key.return) {
+			onSubmit(models[selectedIndex].id);
+			return;
+		}
 
-      <Box flexDirection="column" marginBottom={1}>
-        {AVAILABLE_MODELS.map((model, index) => (
-          <Box key={model.id} marginBottom={index === AVAILABLE_MODELS.length - 1 ? 0 : 1}>
-            <Text 
-              color={index === selectedIndex ? 'black' : 'white'}
-              backgroundColor={index === selectedIndex ? 'cyan' : undefined}
-              bold={index === selectedIndex}
-            >
-              {index === selectedIndex ? <Text bold>{">"}</Text> : "  "} {""}
-              {model.name}
-              {model.id === currentModel ? ' (current)' : ''}
-            </Text>
-            {index === selectedIndex && (
-              <Box marginLeft={4} marginTop={0}>
-                <Text color="gray" dimColor>
-                  {model.description}
-                </Text>
-              </Box>
-            )}
-          </Box>
-        ))}
-      </Box>
-    </Box>
-  );
+		if (key.escape || (key.ctrl && input === 'c')) {
+			onCancel();
+			return;
+		}
+
+		if (key.upArrow) {
+			setSelectedIndex(prev => Math.max(0, prev - 1));
+		} else if (key.downArrow) {
+			setSelectedIndex(prev => Math.min(models.length - 1, prev + 1));
+		}
+	});
+
+	if (loading) {
+		return (
+			<Box flexDirection="column">
+				<Text color="cyan">Loading models...</Text>
+			</Box>
+		);
+	}
+
+	return (
+		<Box flexDirection="column">
+			<Box marginBottom={1}>
+				<Text color="cyan" bold>
+					Select Model
+				</Text>
+			</Box>
+
+			{error && (
+				<Box marginBottom={1}>
+					<Text color="yellow">⚠ {error} (using fallback models)</Text>
+				</Box>
+			)}
+
+			<Box flexDirection="column">
+				{models.map((model, index) => (
+					<Box key={model.id}>
+						<Text
+							color={index === selectedIndex ? 'black' : 'white'}
+							backgroundColor={index === selectedIndex ? 'cyan' : undefined}
+							bold={index === selectedIndex}
+						>
+							{index === selectedIndex ? '>' : ' '} {model.name} (
+							{model.provider}){model.id === currentModel ? ' [current]' : ''}
+						</Text>
+					</Box>
+				))}
+			</Box>
+		</Box>
+	);
 }
