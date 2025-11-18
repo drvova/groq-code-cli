@@ -1,4 +1,4 @@
-<!-- CLAVIX:START -->
+r <!-- CLAVIX:START -->
 # Clavix Workflows (Universal)
 
 Use these instructions when your agent can only read documentation (no slash-command support).

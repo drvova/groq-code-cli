@@ -1,5 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import {Box, Text} from 'ink';
+import {DISPLAY_CONFIG} from './utils/config.js';
 
 interface TokenMetricsProps {
 	isActive: boolean;
@@ -21,8 +22,6 @@ export default function TokenMetrics({
 	const [displayTime, setDisplayTime] = useState('0.0s');
 	const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
 
-	const loadingAnimations = ['█▓▒░', '▓▒░█', '▒░█▓', '░█▓▒'];
-
 	// Update the display time every 100ms when active and not paused
 	useEffect(() => {
 		if (!isActive || isPaused) {
@@ -40,10 +39,12 @@ export default function TokenMetrics({
 			setDisplayTime(`${(currentElapsed / 1000).toFixed(1)}s`);
 		};
 
-		// Update immediately, then set interval
 		updateDisplay();
 
-		const interval = setInterval(updateDisplay, 100);
+		const interval = setInterval(
+			updateDisplay,
+			DISPLAY_CONFIG.TOKEN_DISPLAY_UPDATE,
+		);
 		return () => clearInterval(interval);
 	}, [isActive, isPaused, startTime, pausedTime]);
 
@@ -62,12 +63,12 @@ export default function TokenMetrics({
 
 		const interval = setInterval(() => {
 			setLoadingMessageIndex(
-				prevIndex => (prevIndex + 1) % loadingAnimations.length,
+				prevIndex => (prevIndex + 1) % DISPLAY_CONFIG.LOADING_ANIMATIONS.length,
 			);
-		}, 2000);
+		}, DISPLAY_CONFIG.TOKEN_ANIMATION_CYCLE);
 
 		return () => clearInterval(interval);
-	}, [isActive, isPaused, loadingAnimations.length]);
+	}, [isActive, isPaused]);
 
 	// Update display when request completes
 	useEffect(() => {
@@ -83,7 +84,8 @@ export default function TokenMetrics({
 
 	const getStatusText = (): string => {
 		if (isPaused) return '⏸ Waiting for approval...';
-		if (isActive) return `⚡ ${loadingAnimations[loadingMessageIndex]}...`;
+		if (isActive)
+			return `⚡ ${DISPLAY_CONFIG.LOADING_ANIMATIONS[loadingMessageIndex]}...`;
 		return '';
 	};
 
