@@ -10,9 +10,11 @@ import TokenMetrics from '../display/TokenMetrics.js';
 import PendingToolApproval from '../input-overlays/PendingToolApproval.js';
 import Login from '../input-overlays/Login.js';
 import ModelSelector from '../input-overlays/ModelSelector.js';
+import ProviderSelector from '../input-overlays/ProviderSelector.js';
 import MaxIterationsContinue from '../input-overlays/MaxIterationsContinue.js';
 import ErrorRetry from '../input-overlays/ErrorRetry.js';
 import {handleSlashCommand} from '../../../commands/index.js';
+import {ConfigManager} from '../../../utils/local-settings.js';
 
 interface ChatProps {
 	agent: Agent;
@@ -82,6 +84,7 @@ export default function Chat({agent}: ChatProps) {
 	const [showInput, setShowInput] = useState(true);
 	const [showLogin, setShowLogin] = useState(false);
 	const [showModelSelector, setShowModelSelector] = useState(false);
+	const [showProviderSelector, setShowProviderSelector] = useState(false);
 	const [animationFrame, setAnimationFrame] = useState(0);
 
 	// Handle global keyboard shortcuts
@@ -121,14 +124,15 @@ export default function Chat({agent}: ChatProps) {
 		}
 	});
 
-	// Hide input when processing, waiting for approval, error retry, or showing login/model selector
+	// Hide input when processing, waiting for approval, error retry, or showing login/model/provider selector
 	useEffect(() => {
 		setShowInput(
 			!isProcessing &&
 				!pendingApproval &&
 				!pendingError &&
 				!showLogin &&
-				!showModelSelector,
+				!showModelSelector &&
+				!showProviderSelector,
 		);
 	}, [
 		isProcessing,
@@ -136,6 +140,7 @@ export default function Chat({agent}: ChatProps) {
 		pendingError,
 		showLogin,
 		showModelSelector,
+		showProviderSelector,
 	]);
 
 	// Animation frame update for spinner
@@ -160,6 +165,7 @@ export default function Chat({agent}: ChatProps) {
 					},
 					setShowLogin,
 					setShowModelSelector,
+					setShowProviderSelector,
 					toggleReasoning,
 					showReasoning,
 					sessionStats,
@@ -186,12 +192,18 @@ export default function Chat({agent}: ChatProps) {
 
 	const handleLogin = (apiKey: string) => {
 		setShowLogin(false);
-		// Save the API key persistently
+		const configManager = new ConfigManager();
+		const selectedProvider = configManager.getSelectedProvider() || 'groq';
+
+		// Save API key for the selected provider
+		configManager.setProviderApiKey(selectedProvider, apiKey);
+
+		// Also save via agent for backward compatibility
 		agent.saveApiKey(apiKey);
+
 		addMessage({
 			role: 'system',
-			content:
-				'API key saved successfully. You can now start chatting with the assistant.',
+			content: `API key saved for ${selectedProvider}. You can now start chatting.`,
 		});
 	};
 
@@ -221,6 +233,24 @@ export default function Chat({agent}: ChatProps) {
 		addMessage({
 			role: 'system',
 			content: 'Model selection canceled.',
+		});
+	};
+
+	const handleProviderSelect = (providerId: string) => {
+		setShowProviderSelector(false);
+		const configManager = new ConfigManager();
+		configManager.setSelectedProvider(providerId);
+		addMessage({
+			role: 'system',
+			content: `Selected provider: ${providerId}. Use /login to authenticate.`,
+		});
+	};
+
+	const handleProviderCancel = () => {
+		setShowProviderSelector(false);
+		addMessage({
+			role: 'system',
+			content: 'Provider selection canceled.',
 		});
 	};
 
@@ -278,6 +308,14 @@ export default function Chat({agent}: ChatProps) {
 					/>
 				) : showLogin ? (
 					<Login onSubmit={handleLogin} onCancel={handleLoginCancel} />
+				) : showProviderSelector ? (
+					<ProviderSelector
+						onSubmit={handleProviderSelect}
+						onCancel={handleProviderCancel}
+						currentProvider={
+							new ConfigManager().getSelectedProvider() || undefined
+						}
+					/>
 				) : showModelSelector ? (
 					<ModelSelector
 						onSubmit={handleModelSelect}

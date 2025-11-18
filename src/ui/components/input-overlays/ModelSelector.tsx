@@ -55,21 +55,34 @@ export default function ModelSelector({
 	useEffect(() => {
 		const loadModels = async () => {
 			const configManager = new ConfigManager();
+			const selectedProvider = configManager.getSelectedProvider();
 			let cachedModels = configManager.getCachedModels();
 
 			if (cachedModels) {
-				setModels(cachedModels);
+				const filteredModels = selectedProvider
+					? cachedModels.filter(m => m.providerId === selectedProvider)
+					: cachedModels;
+				setModels(filteredModels.length > 0 ? filteredModels : FALLBACK_MODELS);
 				setLoading(false);
-				updateSelectedIndex(cachedModels);
+				updateSelectedIndex(
+					filteredModels.length > 0 ? filteredModels : FALLBACK_MODELS,
+				);
 				return;
 			}
 
 			try {
 				const fetchedModels = await fetchOpenAICompatibleModels();
 				if (fetchedModels.length > 0) {
-					setModels(fetchedModels);
+					const filteredModels = selectedProvider
+						? fetchedModels.filter(m => m.providerId === selectedProvider)
+						: fetchedModels;
+					setModels(
+						filteredModels.length > 0 ? filteredModels : FALLBACK_MODELS,
+					);
 					configManager.setCachedModels(fetchedModels);
-					updateSelectedIndex(fetchedModels);
+					updateSelectedIndex(
+						filteredModels.length > 0 ? filteredModels : FALLBACK_MODELS,
+					);
 				}
 			} catch (err) {
 				setError(err instanceof Error ? err.message : 'Failed to fetch models');
@@ -136,8 +149,8 @@ export default function ModelSelector({
 							backgroundColor={index === selectedIndex ? 'cyan' : undefined}
 							bold={index === selectedIndex}
 						>
-							{index === selectedIndex ? '>' : ' '} {model.name} (
-							{model.provider}){model.id === currentModel ? ' [current]' : ''}
+							{index === selectedIndex ? '>' : ' '} {model.name}
+							{model.id === currentModel ? ' [current]' : ''}
 						</Text>
 					</Box>
 				))}

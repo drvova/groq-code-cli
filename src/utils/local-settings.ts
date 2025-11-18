@@ -1,12 +1,19 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import {ModelInfo} from './models-api';
+import {ModelInfo, ProviderInfo} from './models-api';
 
 interface Config {
-	groqApiKey?: string;
+	groqApiKey?: string; // Legacy - migrated to providers
+	providers?: {[providerId: string]: string}; // providerId -> API key
+	selectedProvider?: string;
 	defaultModel?: string;
 	groqProxy?: string;
+}
+
+interface ProvidersCache {
+	timestamp: number;
+	providers: ProviderInfo[];
 }
 
 interface ModelsCache {
@@ -17,6 +24,7 @@ interface ModelsCache {
 const CONFIG_DIR = '.groq'; // In home directory
 const CONFIG_FILE = 'local-settings.json';
 const MODELS_CACHE_FILE = 'models-cache.json';
+const PROVIDERS_CACHE_FILE = 'providers-cache.json';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export class ConfigManager {
@@ -189,5 +197,71 @@ export class ConfigManager {
 		const cachePath = path.join(this.cacheDir, MODELS_CACHE_FILE);
 		const cache: ModelsCache = {timestamp: Date.now(), models};
 		fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2));
+	}
+
+	public getCachedProviders(): ProviderInfo[] | null {
+		const cachePath = path.join(this.cacheDir, PROVIDERS_CACHE_FILE);
+		try {
+			if (!fs.existsSync(cachePath)) return null;
+			const cacheData = fs.readFileSync(cachePath, 'utf8');
+			const cache: ProvidersCache = JSON.parse(cacheData);
+			if (Date.now() - cache.timestamp > CACHE_TTL_MS) return null;
+			return cache.providers;
+		} catch {
+			return null;
+		}
+	}
+
+	public setCachedProviders(providers: ProviderInfo[]): void {
+		this.ensureConfigDir();
+		const cachePath = path.join(this.cacheDir, PROVIDERS_CACHE_FILE);
+		const cache: ProvidersCache = {timestamp: Date.now(), providers};
+		fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2));
+	}
+
+	public getSelectedProvider(): string | null {
+		const config = this.readConfig();
+		return config.selectedProvider || null;
+	}
+
+	public setSelectedProvider(providerId: string): void {
+		try {
+			const config = this.readConfig();
+			config.selectedProvider = providerId;
+			this.writeConfig(config);
+		} catch (error) {
+			throw new Error(`Failed to save selected provider: ${error}`);
+		}
+	}
+
+	public getProviderApiKey(providerId: string): string | null {
+		const config = this.readConfig();
+
+		// Migrate legacy groqApiKey to providers structure
+		if (config.groqApiKey && !config.providers) {
+			config.providers = {groq: config.groqApiKey};
+			delete config.groqApiKey;
+			this.writeConfig(config);
+		}
+
+		return config.providers?.[providerId] || null;
+	}
+
+	public setProviderApiKey(providerId: string, apiKey: string): void {
+		try {
+			const config = this.readConfig();
+
+			// Migrate legacy groqApiKey if exists
+			if (config.groqApiKey && !config.providers) {
+				config.providers = {groq: config.groqApiKey};
+				delete config.groqApiKey;
+			}
+
+			if (!config.providers) config.providers = {};
+			config.providers[providerId] = apiKey;
+			this.writeConfig(config);
+		} catch (error) {
+			throw new Error(`Failed to save provider API key: ${error}`);
+		}
 	}
 }
