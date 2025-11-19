@@ -11,7 +11,7 @@
 	},
 	"scripts": {
 		"build": "tsc",
-		"dev": "tsc --watch",
+		"dev": "node --loader ts-node/esm src/core/cli.ts",
 		"prepare": "npm run build",
 		"test": "ava"
 	},
