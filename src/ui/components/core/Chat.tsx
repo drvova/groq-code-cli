@@ -8,6 +8,7 @@ import MessageHistory from './MessageHistory.js';
 import MessageInput from './MessageInput.js';
 import TokenMetrics from '../display/TokenMetrics.js';
 import MCPStatus from '../display/MCPStatus.js';
+import LSPStatus from '../display/LSPStatus.js';
 import PendingToolApproval from '../input-overlays/PendingToolApproval.js';
 import Login from '../input-overlays/Login.js';
 import ModelSelector from '../input-overlays/ModelSelector.js';
@@ -514,7 +515,8 @@ export default function Chat({agent}: ChatProps) {
 							onSubmit={handleProviderSelect}
 							onCancel={handleProviderCancel}
 							currentProvider={
-								getConfig().getConfigManager().getSelectedProvider() || undefined
+								getConfig().getConfigManager().getSelectedProvider() ||
+								undefined
 							}
 						/>
 					) : showMCPSelector ? (
@@ -561,6 +563,7 @@ export default function Chat({agent}: ChatProps) {
 				<Box justifyContent="space-between" paddingX={1}>
 					<Box gap={2}>
 						<MCPStatus />
+						<LSPStatus />
 						<Text color="cyan" bold>
 							{sessionAutoApprove ? 'auto-approve edits is on' : ''}
 						</Text>
