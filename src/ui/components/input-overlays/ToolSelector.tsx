@@ -2,7 +2,7 @@
  * Tool Selector - Interactive menu for tool management
  * Constitutional compliance: AMENDMENT VIII - Comprehensive implementation
  * Constitutional compliance: AMENDMENT XV - Full implementation without placeholders
- * Enhanced terminal UI aesthetics with box drawing and refined typography
+ * Minimal terminal UI design - clarity through restraint
  */
 
 import React, {useState, useEffect} from 'react';
@@ -118,36 +118,9 @@ export default function ToolSelector({
 		});
 	};
 
-	const getCategoryIcon = (category: string): string => {
-		switch (category) {
-			case 'safe':
-				return '◆';
-			case 'approval_required':
-				return '◇';
-			case 'dangerous':
-				return '◈';
-			default:
-				return '○';
-		}
-	};
-
-	const getCategoryLabel = (category: string): string => {
-		switch (category) {
-			case 'safe':
-				return 'SAFE';
-			case 'approval_required':
-				return 'REQUIRES APPROVAL';
-			case 'dangerous':
-				return 'DANGEROUS';
-			default:
-				return category.toUpperCase();
-		}
-	};
-
 	const renderItem = (item: ToolListItem, isSelected: boolean) => {
 		const statusIcon = item.enabled ? '●' : '○';
 		const statusColor = item.enabled ? 'green' : 'gray';
-		const categoryIcon = getCategoryIcon(item.category);
 		const categoryColor =
 			item.category === 'safe'
 				? 'green'
@@ -157,30 +130,27 @@ export default function ToolSelector({
 				? 'red'
 				: 'gray';
 
-		const pointer = isSelected ? '▶' : ' ';
-		const pointerColor = isSelected ? 'cyan' : 'gray';
+		const pointer = isSelected ? '›' : ' ';
 
 		return (
 			<Box key={item.id} flexDirection="column">
 				<Box>
-					<Text color={pointerColor}>{pointer} </Text>
-					<Text color={statusColor} bold>
-						{statusIcon}
-					</Text>
+					<Text color={isSelected ? 'cyan' : 'gray'}>{pointer} </Text>
+					<Text color={statusColor}>{statusIcon}</Text>
 					<Text> </Text>
-					<Text color={isSelected ? 'cyan' : 'white'} bold={isSelected}>
+					<Text color={isSelected ? 'white' : 'gray'} bold={isSelected}>
 						{item.name}
 					</Text>
-					<Text> </Text>
 					<Text color={categoryColor} dimColor>
-						{categoryIcon} {getCategoryLabel(item.category)}
+						{' '}
+						· {item.category}
 					</Text>
 				</Box>
 				{isSelected && (
-					<Box marginLeft={4} marginTop={0}>
+					<Box marginLeft={4}>
 						<Text color="gray" dimColor>
-							└─ {item.description.slice(0, 75)}
-							{item.description.length > 75 ? '…' : ''}
+							{item.description.slice(0, 80)}
+							{item.description.length > 80 ? '…' : ''}
 						</Text>
 					</Box>
 				)}
@@ -191,140 +161,38 @@ export default function ToolSelector({
 	const stateManager = ToolStateManager.getInstance();
 	const stats = stateManager.getStats();
 
-	const getFilterIcon = (filter: string): string => {
-		switch (filter) {
-			case 'all':
-				return '◉';
-			case 'enabled':
-				return '●';
-			case 'disabled':
-				return '○';
-			default:
-				return '○';
-		}
-	};
-
 	const footer = (
-		<Box
-			flexDirection="column"
-			marginTop={1}
-			paddingTop={1}
-			borderStyle="single"
-			borderTop
-		>
+		<Box flexDirection="column" marginTop={1}>
 			<Box marginBottom={1}>
 				<Text dimColor>
-					┌─{' '}
-					<Text color="cyan" bold>
-						CONTROLS
-					</Text>{' '}
-					─┐
-				</Text>
-			</Box>
-			<Box marginLeft={2}>
-				<Text>
-					<Text color="cyan" bold>
-						↑ ↓
-					</Text>{' '}
-					<Text dimColor>Navigate</Text>
-					{'  '}
-					<Text color="green" bold>
-						⏎
-					</Text>{' '}
-					<Text dimColor>Toggle</Text>
-					{'  '}
-					<Text color="magenta" bold>
-						A
-					</Text>{' '}
-					<Text dimColor>All On</Text>
-					{'  '}
-					<Text color="red" bold>
-						D
-					</Text>{' '}
-					<Text dimColor>All Off</Text>
-					{'  '}
-					<Text color="yellow" bold>
-						F
-					</Text>{' '}
-					<Text dimColor>Filter</Text>
-					{'  '}
-					<Text color="blue" bold>
-						R
-					</Text>{' '}
-					<Text dimColor>Reset</Text>
-					{'  '}
-					<Text color="gray" bold>
-						Esc
-					</Text>{' '}
-					<Text dimColor>Exit</Text>
+					<Text color="cyan">↑↓</Text> navigate
+					<Text color="green">enter</Text> toggle
+					<Text color="green">a</Text> enable all
+					<Text color="red">d</Text> disable all
+					<Text color="yellow">f</Text> filter
+					<Text color="blue">r</Text> reset
+					<Text color="gray">esc</Text> close
 				</Text>
 			</Box>
 
-			<Box marginTop={1} marginBottom={1}>
-				<Text dimColor>
-					├─{' '}
-					<Text color="cyan" bold>
-						STATISTICS
-					</Text>{' '}
-					─┤
-				</Text>
-			</Box>
-			<Box marginLeft={2}>
-				<Text>
-					<Text color="green" bold>
-						● {stats.enabled}
-					</Text>
-					<Text dimColor> enabled</Text>
-					{'  │  '}
-					<Text color="gray" bold>
-						○ {stats.disabled}
-					</Text>
-					<Text dimColor> disabled</Text>
-					{'  │  '}
-					<Text color="white" bold>
-						◉ {stats.total}
-					</Text>
-					<Text dimColor> total</Text>
-				</Text>
-			</Box>
-
-			<Box marginTop={1} marginBottom={1}>
-				<Text dimColor>
-					├─{' '}
-					<Text color="cyan" bold>
-						CURRENT FILTER
-					</Text>{' '}
-					─┤
-				</Text>
-			</Box>
-			<Box marginLeft={2}>
-				<Text>
-					<Text color="yellow" bold>
-						{getFilterIcon(filterEnabled)}
-					</Text>{' '}
-					<Text color="cyan" bold>
-						{filterEnabled.toUpperCase()}
-					</Text>
-					<Text dimColor> view</Text>
-				</Text>
+			<Box>
+				<Text color="green">●</Text>
+				<Text dimColor> {stats.enabled} enabled</Text>
+				<Text dimColor> · </Text>
+				<Text color="gray">○</Text>
+				<Text dimColor> {stats.disabled} disabled</Text>
+				<Text dimColor> · </Text>
+				<Text dimColor>{stats.total} total</Text>
+				<Text dimColor> · </Text>
+				<Text color="cyan">{filterEnabled}</Text>
+				<Text dimColor> view</Text>
 			</Box>
 
 			{error && (
-				<Box marginTop={1} borderStyle="single" borderColor="red" paddingX={1}>
-					<Text color="red" bold>
-						⚠ ERROR:
-					</Text>
-					<Text> {error}</Text>
+				<Box marginTop={1}>
+					<Text color="red">Error: {error}</Text>
 				</Box>
 			)}
-
-			<Box marginTop={1}>
-				<Text dimColor>
-					└─{' '}
-					<Text color="yellow">Changes apply immediately to new requests</Text>{' '}
-					─┘
-				</Text>
-			</Box>
 		</Box>
 	);
 
@@ -333,14 +201,14 @@ export default function ToolSelector({
 			items={tools}
 			onSelect={handleToggle}
 			onCancel={onCancel}
-			title="╔═══ TOOL MANAGEMENT CONSOLE ═══╗"
+			title="Tool Manager"
 			renderItem={renderItem}
 			loading={loading}
 			error={error}
 			emptyMessage={
 				filterEnabled === 'all'
-					? '╰─ No tools registered ─╯'
-					: `╰─ No ${filterEnabled} tools found ─╯`
+					? 'No tools registered'
+					: `No ${filterEnabled} tools found`
 			}
 			footer={footer}
 			actions={[
