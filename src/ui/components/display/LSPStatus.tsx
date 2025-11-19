@@ -61,7 +61,7 @@ export default function LSPStatus({
 	if (!isRunning) {
 		return (
 			<Text color="gray" dimColor>
-				LSP: ○ Inactive
+				LSP: ○ Inactive (use /diagnostics)
 			</Text>
 		);
 	}

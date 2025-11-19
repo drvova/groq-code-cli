@@ -11,21 +11,30 @@ export const diagnosticsCommand: CommandDefinition = {
 	handler(context: CommandContext) {
 		context.addMessage({
 			role: 'assistant',
-			content: `I'll help you analyze your codebase with LSP diagnostics. Let me run the diagnostic tools:
+			content: `I'll help you set up LSP diagnostics for real-time code analysis!
 
-1. First, I'll detect available LSP servers on your system
-2. Then start the LSP diagnostics engine
-3. Analyze your workspace for errors and warnings
-4. Provide a comprehensive summary
+**Quick Start:**
+Let me detect and start the appropriate LSP server for your workspace. I'll use:
+1. detect_lsp_servers - Find available LSP servers on your system
+2. start_lsp_diagnostics - Start the LSP engine (auto-detects language)
+3. analyze_workspace - Scan your code for errors and warnings
 
-Please use these tools:
-- detect_lsp_servers - Detect available LSP servers
-- start_lsp_diagnostics - Start LSP diagnostics engine
-- analyze_workspace - Analyze entire workspace
-- get_lsp_diagnostics_summary - Get diagnostics summary
+**Available Tools:**
+- \`detect_lsp_servers\` - See all 25+ supported language servers
+- \`start_lsp_diagnostics\` - Start diagnostics (optional: workspace_path, server)
+- \`analyze_workspace\` - Full workspace analysis (optional: directory, pattern)
+- \`analyze_lsp_file\` - Analyze specific file (required: file_path)
+- \`get_lsp_diagnostics_summary\` - Get current diagnostics summary
+- \`get_files_with_errors\` - List files with errors only
+- \`stop_lsp_diagnostics\` - Stop the LSP server
 
-For specific file analysis: analyze_lsp_file with file_path parameter
-For files with errors only: get_files_with_errors`,
+**Status Bar:**
+Once running, you'll see: \`LSP ● [XE YW]\` in the bottom status bar
+- Green ●: Active, no errors
+- Yellow ●: Active, warnings present
+- Red ●: Active, errors detected
+
+Let me detect what servers you have available first!`,
 		});
 	},
 };
