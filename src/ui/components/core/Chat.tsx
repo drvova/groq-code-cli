@@ -214,6 +214,23 @@ export default function Chat({agent}: ChatProps) {
 		if (message.trim() && !isProcessing) {
 			setInputValue('');
 
+			// Handle shell commands with ! prefix
+			if (message.startsWith('!')) {
+				const shellCommand = message.slice(1).trim();
+				if (shellCommand) {
+					addMessage({
+						role: 'user',
+						content: message,
+					});
+					addMessage({
+						role: 'assistant',
+						content: `Executing shell command: \`${shellCommand}\``,
+					});
+					await sendMessage(`Execute this shell command: ${shellCommand}`);
+				}
+				return;
+			}
+
 			// Handle slash commands
 			if (message.startsWith('/')) {
 				handleSlashCommand(message, {
