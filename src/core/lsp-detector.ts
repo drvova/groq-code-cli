@@ -11,8 +11,12 @@ import {exec} from 'child_process';
 import {promisify} from 'util';
 import path from 'path';
 import fs from 'fs';
+import {fileURLToPath} from 'url';
 
 const execAsync = promisify(exec);
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export interface LSPServerConfig {
 	name: string;
@@ -341,10 +345,23 @@ export class LSPDetector {
 
 	/**
 	 * Detect a specific LSP server
+	 * Priority: 1. Bundled (node_modules/.bin) → 2. System PATH
 	 */
 	static async detectServer(
 		serverConfig: Omit<LSPServerConfig, 'detected'>,
 	): Promise<LSPServerConfig> {
+		// First, check for bundled LSP servers in node_modules
+		const bundledPath = await this.checkBundledServer(serverConfig.command);
+		if (bundledPath) {
+			return {
+				...serverConfig,
+				detected: true,
+				path: bundledPath,
+				version: 'bundled',
+			};
+		}
+
+		// Fall back to system PATH
 		const platform = process.platform;
 		const isWindows = platform === 'win32';
 
@@ -383,6 +400,57 @@ export class LSPDetector {
 			};
 		} catch (error) {
 			return {...serverConfig, detected: false};
+		}
+	}
+
+	/**
+	 * Check for bundled LSP server in node_modules
+	 */
+	private static async checkBundledServer(
+		command: string,
+	): Promise<string | null> {
+		try {
+			// Navigate from dist/core up to project root
+			const projectRoot = path.resolve(__dirname, '../..');
+			const nodeModulesBin = path.join(
+				projectRoot,
+				'node_modules',
+				'.bin',
+				command,
+			);
+
+			// Check if bundled server exists
+			if (fs.existsSync(nodeModulesBin)) {
+				return nodeModulesBin;
+			}
+
+			// Also check direct node_modules path for some servers
+			const directPaths: Record<string, string> = {
+				'typescript-language-server': 'typescript-language-server/lib/cli.mjs',
+				'vscode-css-language-server':
+					'vscode-langservers-extracted/bin/vscode-css-language-server',
+				'vscode-html-language-server':
+					'vscode-langservers-extracted/bin/vscode-html-language-server',
+				'vscode-json-language-server':
+					'vscode-langservers-extracted/bin/vscode-json-language-server',
+				'vscode-eslint-language-server':
+					'vscode-langservers-extracted/bin/vscode-eslint-language-server',
+			};
+
+			if (directPaths[command]) {
+				const directPath = path.join(
+					projectRoot,
+					'node_modules',
+					directPaths[command],
+				);
+				if (fs.existsSync(directPath)) {
+					return directPath;
+				}
+			}
+
+			return null;
+		} catch {
+			return null;
 		}
 	}
 
