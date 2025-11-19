@@ -29,14 +29,11 @@ export default function ToolSelector({
 }: ToolSelectorProps) {
 	const [loading, setLoading] = useState(true);
 	const [tools, setTools] = useState<ToolListItem[]>([]);
-	const [filterEnabled, setFilterEnabled] = useState<
-		'all' | 'enabled' | 'disabled'
-	>('all');
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
 		loadTools();
-	}, [filterEnabled]);
+	}, []);
 
 	const loadTools = () => {
 		try {
@@ -46,7 +43,7 @@ export default function ToolSelector({
 			const stateManager = ToolStateManager.getInstance();
 			const allSchemas = ToolRegistry.getAllSchemas();
 
-			let toolItems: ToolListItem[] = allSchemas.map(schema => {
+			const toolItems: ToolListItem[] = allSchemas.map(schema => {
 				const toolName = schema.function.name;
 				const category = ToolRegistry.getToolCategory(toolName) || 'unknown';
 				const enabled = stateManager.isToolEnabled(toolName);
@@ -60,12 +57,6 @@ export default function ToolSelector({
 					description: schema.function.description,
 				};
 			});
-
-			if (filterEnabled === 'enabled') {
-				toolItems = toolItems.filter(t => t.enabled);
-			} else if (filterEnabled === 'disabled') {
-				toolItems = toolItems.filter(t => !t.enabled);
-			}
 
 			toolItems.sort((a, b) => {
 				if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
@@ -87,35 +78,6 @@ export default function ToolSelector({
 		stateManager.toggleTool(item.name, item.category);
 		loadTools();
 		onToolsChanged?.();
-	};
-
-	const handleEnableAll = () => {
-		const stateManager = ToolStateManager.getInstance();
-		stateManager.enableAll();
-		loadTools();
-		onToolsChanged?.();
-	};
-
-	const handleDisableAll = () => {
-		const stateManager = ToolStateManager.getInstance();
-		stateManager.disableAll();
-		loadTools();
-		onToolsChanged?.();
-	};
-
-	const handleReset = () => {
-		const stateManager = ToolStateManager.getInstance();
-		stateManager.reset();
-		loadTools();
-		onToolsChanged?.();
-	};
-
-	const cycleFilter = () => {
-		setFilterEnabled(prev => {
-			if (prev === 'all') return 'enabled';
-			if (prev === 'enabled') return 'disabled';
-			return 'all';
-		});
 	};
 
 	const renderItem = (item: ToolListItem, isSelected: boolean) => {
@@ -167,10 +129,6 @@ export default function ToolSelector({
 				<Text dimColor>
 					<Text color="cyan">↑↓</Text> navigate
 					<Text color="green">enter</Text> toggle
-					<Text color="green">a</Text> enable all
-					<Text color="red">d</Text> disable all
-					<Text color="yellow">f</Text> filter
-					<Text color="blue">r</Text> reset
 					<Text color="gray">esc</Text> close
 				</Text>
 			</Box>
@@ -183,9 +141,6 @@ export default function ToolSelector({
 				<Text dimColor> {stats.disabled} disabled</Text>
 				<Text dimColor> · </Text>
 				<Text dimColor>{stats.total} total</Text>
-				<Text dimColor> · </Text>
-				<Text color="cyan">{filterEnabled}</Text>
-				<Text dimColor> view</Text>
 			</Box>
 
 			{error && (
@@ -205,22 +160,9 @@ export default function ToolSelector({
 			renderItem={renderItem}
 			loading={loading}
 			error={error}
-			emptyMessage={
-				filterEnabled === 'all'
-					? 'No tools registered'
-					: `No ${filterEnabled} tools found`
-			}
+			emptyMessage="No tools registered"
 			footer={footer}
-			actions={[
-				{key: 'a', onAction: () => handleEnableAll()},
-				{key: 'A', onAction: () => handleEnableAll()},
-				{key: 'd', onAction: () => handleDisableAll()},
-				{key: 'D', onAction: () => handleDisableAll()},
-				{key: 'f', onAction: () => cycleFilter()},
-				{key: 'F', onAction: () => cycleFilter()},
-				{key: 'r', onAction: () => handleReset()},
-				{key: 'R', onAction: () => handleReset()},
-			]}
+			actions={[]}
 			visibleItemCount={12}
 		/>
 	);
