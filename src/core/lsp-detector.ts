@@ -38,25 +38,55 @@ export class LSPDetector {
 			name: 'TypeScript Language Server',
 			command: 'typescript-language-server',
 			args: ['--stdio'],
-			languages: ['typescript', 'javascript', 'typescriptreact', 'javascriptreact'],
-			fileExtensions: ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'],
+			languages: [
+				'typescript',
+				'javascript',
+				'typescriptreact',
+				'javascriptreact',
+			],
+			fileExtensions: [
+				'.ts',
+				'.tsx',
+				'.js',
+				'.jsx',
+				'.mjs',
+				'.cjs',
+				'.mts',
+				'.cts',
+			],
 			priority: 100,
-		},
-		{
-			name: 'TypeScript Server (tsserver)',
-			command: 'tsserver',
-			args: ['--stdio'],
-			languages: ['typescript', 'javascript', 'typescriptreact', 'javascriptreact'],
-			fileExtensions: ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'],
-			priority: 90,
 		},
 		{
 			name: 'Deno Language Server',
 			command: 'deno',
 			args: ['lsp'],
 			languages: ['typescript', 'javascript'],
-			fileExtensions: ['.ts', '.tsx', '.js', '.jsx'],
-			priority: 85,
+			fileExtensions: ['.ts', '.tsx', '.js', '.jsx', '.mjs'],
+			priority: 95,
+		},
+		{
+			name: 'ESLint Language Server',
+			command: 'vscode-eslint-language-server',
+			args: ['--stdio'],
+			languages: [
+				'typescript',
+				'javascript',
+				'typescriptreact',
+				'javascriptreact',
+				'vue',
+			],
+			fileExtensions: [
+				'.ts',
+				'.tsx',
+				'.js',
+				'.jsx',
+				'.mjs',
+				'.cjs',
+				'.mts',
+				'.cts',
+				'.vue',
+			],
+			priority: 80,
 		},
 		{
 			name: 'Python Language Server (Pyright)',
@@ -91,11 +121,54 @@ export class LSPDetector {
 			priority: 100,
 		},
 		{
+			name: 'Ruby Language Server',
+			command: 'ruby-lsp',
+			args: [],
+			languages: ['ruby'],
+			fileExtensions: ['.rb', '.rake', '.gemspec', '.ru'],
+			priority: 95,
+		},
+		{
+			name: 'Elixir Language Server',
+			command: 'elixir-ls',
+			args: [],
+			languages: ['elixir'],
+			fileExtensions: ['.ex', '.exs'],
+			priority: 95,
+		},
+		{
+			name: 'Zig Language Server',
+			command: 'zls',
+			args: [],
+			languages: ['zig'],
+			fileExtensions: ['.zig', '.zon'],
+			priority: 95,
+		},
+		{
+			name: 'C# Language Server (OmniSharp)',
+			command: 'omnisharp',
+			args: ['--languageserver'],
+			languages: ['csharp'],
+			fileExtensions: ['.cs'],
+			priority: 100,
+		},
+		{
 			name: 'C/C++ Language Server (clangd)',
 			command: 'clangd',
 			args: [],
 			languages: ['c', 'cpp'],
-			fileExtensions: ['.c', '.cpp', '.h', '.hpp', '.cc', '.cxx'],
+			fileExtensions: [
+				'.c',
+				'.cpp',
+				'.cc',
+				'.cxx',
+				'.c++',
+				'.h',
+				'.hpp',
+				'.hh',
+				'.hxx',
+				'.h++',
+			],
 			priority: 100,
 		},
 		{
@@ -115,12 +188,20 @@ export class LSPDetector {
 			priority: 90,
 		},
 		{
-			name: 'Ruby Language Server (Solargraph)',
-			command: 'solargraph',
-			args: ['stdio'],
-			languages: ['ruby'],
-			fileExtensions: ['.rb'],
+			name: 'Lua Language Server',
+			command: 'lua-language-server',
+			args: [],
+			languages: ['lua'],
+			fileExtensions: ['.lua'],
 			priority: 90,
+		},
+		{
+			name: 'Swift Language Server (SourceKit-LSP)',
+			command: 'sourcekit-lsp',
+			args: [],
+			languages: ['swift', 'objective-c', 'objective-cpp'],
+			fileExtensions: ['.swift', '.objc', '.objcpp'],
+			priority: 100,
 		},
 		{
 			name: 'CSS Language Server',
@@ -163,12 +244,12 @@ export class LSPDetector {
 			priority: 80,
 		},
 		{
-			name: 'Vue Language Server',
-			command: 'vls',
-			args: [],
+			name: 'Vue Language Server (Volar)',
+			command: 'vue-language-server',
+			args: ['--stdio'],
 			languages: ['vue'],
 			fileExtensions: ['.vue'],
-			priority: 90,
+			priority: 95,
 		},
 		{
 			name: 'Svelte Language Server',
@@ -176,7 +257,15 @@ export class LSPDetector {
 			args: ['--stdio'],
 			languages: ['svelte'],
 			fileExtensions: ['.svelte'],
-			priority: 90,
+			priority: 95,
+		},
+		{
+			name: 'Astro Language Server',
+			command: 'astro-ls',
+			args: ['--stdio'],
+			languages: ['astro'],
+			fileExtensions: ['.astro'],
+			priority: 95,
 		},
 	];
 
@@ -212,7 +301,9 @@ export class LSPDetector {
 	/**
 	 * Detect LSP server for specific file extension
 	 */
-	static async detectForFile(filePath: string): Promise<LSPServerConfig | null> {
+	static async detectForFile(
+		filePath: string,
+	): Promise<LSPServerConfig | null> {
 		const ext = path.extname(filePath).toLowerCase();
 		const candidates = this.KNOWN_SERVERS.filter(server =>
 			server.fileExtensions.includes(ext),
@@ -328,7 +419,9 @@ export class LSPDetector {
 	 */
 	static async isServerAvailable(serverName: string): Promise<boolean> {
 		const server = this.KNOWN_SERVERS.find(
-			s => s.name.toLowerCase() === serverName.toLowerCase() || s.command === serverName,
+			s =>
+				s.name.toLowerCase() === serverName.toLowerCase() ||
+				s.command === serverName,
 		);
 
 		if (!server) return false;
@@ -348,7 +441,9 @@ export class LSPDetector {
 		}
 
 		const stats = fs.statSync(workspacePath);
-		const targetPath = stats.isDirectory() ? workspacePath : path.dirname(workspacePath);
+		const targetPath = stats.isDirectory()
+			? workspacePath
+			: path.dirname(workspacePath);
 
 		const files = fs.readdirSync(targetPath);
 		const extensions = new Set<string>();
@@ -358,17 +453,29 @@ export class LSPDetector {
 			if (ext) extensions.add(ext);
 		});
 
-		if (extensions.has('.ts') || extensions.has('.tsx') || files.includes('tsconfig.json')) {
+		if (
+			extensions.has('.ts') ||
+			extensions.has('.tsx') ||
+			files.includes('tsconfig.json')
+		) {
 			const tsServers = await this.detectForLanguage('typescript');
 			return tsServers.length > 0 ? tsServers[0] : null;
 		}
 
-		if (extensions.has('.js') || extensions.has('.jsx') || files.includes('package.json')) {
+		if (
+			extensions.has('.js') ||
+			extensions.has('.jsx') ||
+			files.includes('package.json')
+		) {
 			const jsServers = await this.detectForLanguage('javascript');
 			return jsServers.length > 0 ? jsServers[0] : null;
 		}
 
-		if (extensions.has('.py') || files.includes('requirements.txt') || files.includes('pyproject.toml')) {
+		if (
+			extensions.has('.py') ||
+			files.includes('requirements.txt') ||
+			files.includes('pyproject.toml')
+		) {
 			const pyServers = await this.detectForLanguage('python');
 			return pyServers.length > 0 ? pyServers[0] : null;
 		}
@@ -398,27 +505,43 @@ export class LSPDetector {
 		if (!server) return 'Server not found in known servers list.';
 
 		const instructions: Record<string, string> = {
-			'typescript-language-server': 'npm install -g typescript-language-server typescript',
-			'tsserver': 'npm install -g typescript',
-			'deno': 'Visit https://deno.land for installation instructions',
+			'typescript-language-server':
+				'npm install -g typescript-language-server typescript',
+			deno: 'curl -fsSL https://deno.land/install.sh | sh (or visit https://deno.land)',
+			'vscode-eslint-language-server':
+				'npm install -g vscode-eslint-language-server eslint',
 			'pyright-langserver': 'npm install -g pyright',
-			'pylsp': 'pip install python-lsp-server',
-			'rust-analyzer': 'Visit https://rust-analyzer.github.io for installation instructions',
-			'gopls': 'go install golang.org/x/tools/gopls@latest',
-			'clangd': 'Install via your system package manager (apt, brew, etc.)',
-			'jdtls': 'Visit https://github.com/eclipse/eclipse.jdt.ls for installation instructions',
-			'intelephense': 'npm install -g intelephense',
-			'solargraph': 'gem install solargraph',
-			'vscode-css-language-server': 'npm install -g vscode-langservers-extracted',
-			'vscode-html-language-server': 'npm install -g vscode-langservers-extracted',
-			'vscode-json-language-server': 'npm install -g vscode-langservers-extracted',
+			pylsp: 'pip install python-lsp-server',
+			'rust-analyzer': 'rustup component add rust-analyzer',
+			gopls: 'go install golang.org/x/tools/gopls@latest',
+			'ruby-lsp': 'gem install ruby-lsp',
+			'elixir-ls': 'Install via Elixir: mix archive.install hex elixir_ls',
+			zls: 'Visit https://github.com/zigtools/zls for installation',
+			omnisharp: 'Install .NET SDK, then: dotnet tool install -g csharp-ls',
+			clangd:
+				'Install via package manager: apt install clangd / brew install llvm',
+			jdtls: 'Download from https://download.eclipse.org/jdtls/milestones/',
+			intelephense: 'npm install -g intelephense',
+			'lua-language-server':
+				'Install from https://github.com/LuaLS/lua-language-server',
+			'sourcekit-lsp': 'Install Xcode or Swift toolchain',
+			'vscode-css-language-server':
+				'npm install -g vscode-langservers-extracted',
+			'vscode-html-language-server':
+				'npm install -g vscode-langservers-extracted',
+			'vscode-json-language-server':
+				'npm install -g vscode-langservers-extracted',
 			'bash-language-server': 'npm install -g bash-language-server',
 			'yaml-language-server': 'npm install -g yaml-language-server',
-			'vls': 'npm install -g vls',
-			'svelteserver': 'npm install -g svelte-language-server',
+			'vue-language-server': 'npm install -g @vue/language-server',
+			svelteserver: 'npm install -g svelte-language-server',
+			'astro-ls': 'npm install -g @astrojs/language-server',
 		};
 
-		return instructions[server.command] || `Install ${server.command} via your package manager`;
+		return (
+			instructions[server.command] ||
+			`Install ${server.command} via your package manager`
+		);
 	}
 
 	/**
