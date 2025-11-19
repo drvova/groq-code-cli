@@ -8,6 +8,7 @@ import {registerSearchTools} from './search-tools.js';
 import {registerShellTools} from './shell-tools.js';
 import {registerTaskTools} from './task-tools.js';
 import {registerASTTools} from './ast-tools.js';
+import {registerLSPTools} from './lsp-tools-registry.js';
 
 /**
  * Initialize all tool categories
@@ -19,6 +20,7 @@ export function initializeAllTools(): void {
 	registerShellTools();
 	registerTaskTools();
 	registerASTTools();
+	registerLSPTools();
 }
 
 /**
@@ -30,4 +32,5 @@ export {
 	registerShellTools,
 	registerTaskTools,
 	registerASTTools,
+	registerLSPTools,
 };
