@@ -7,6 +7,7 @@ export interface CommandContext {
 	setShowSessionSelector?: (show: boolean) => void;
 	setShowMCPSelector?: (show: boolean) => void;
 	setShowLSPSelector?: (show: boolean) => void;
+	setShowToolSelector?: (show: boolean) => void;
 	toggleReasoning?: () => void;
 	showReasoning?: boolean;
 	sessionStats?: {

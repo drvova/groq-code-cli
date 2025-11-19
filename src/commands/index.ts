@@ -10,6 +10,7 @@ import {resumeCommand} from './definitions/resume.js';
 import {newCommand} from './definitions/new.js';
 import {mcpCommand} from './definitions/mcp.js';
 import {lspCommand} from './definitions/lsp.js';
+import {toolsCommand} from './definitions/tools.js';
 
 const availableCommands: CommandDefinition[] = [
 	helpCommand,
@@ -18,6 +19,7 @@ const availableCommands: CommandDefinition[] = [
 	providerCommand,
 	mcpCommand,
 	lspCommand,
+	toolsCommand,
 	newCommand,
 	resumeCommand,
 	initCommand,

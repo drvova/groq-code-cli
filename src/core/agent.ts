@@ -3,11 +3,16 @@ import {
 	getReadBeforeEditError,
 } from '../tools/validators.js';
 import {ToolRegistry, ToolSchema, initializeAllTools} from '../tools/index.js';
+import {ToolStateManager} from './tool-state-manager.js';
 import {getConfig} from './config/index.js';
 import {getProxyAgent, getProxyInfo} from '../utils/proxy-config.js';
 import {MCPManager} from './mcp-manager.js';
 import {LLMProvider, ProviderFactory, Message} from './providers/index.js';
-import {debugLog, setDebugEnabled, generateCurlCommand} from '../utils/debug.js';
+import {
+	debugLog,
+	setDebugEnabled,
+	generateCurlCommand,
+} from '../utils/debug.js';
 import {buildDefaultSystemMessage} from './prompts.js';
 import fs from 'fs';
 import path from 'path';
@@ -58,6 +63,9 @@ export class Agent {
 
 		initializeAllTools();
 		setDebugEnabled(debug || false);
+
+		// Initialize tool state manager
+		ToolStateManager.getInstance();
 
 		this.systemMessage = systemMessage || buildDefaultSystemMessage(this.model);
 		this.messages.push({role: 'system', content: this.systemMessage});
@@ -293,7 +301,7 @@ export class Agent {
 		this.model = model;
 		getConfig().setDefaultModel(model);
 		this.systemMessage = buildDefaultSystemMessage(model);
-		
+
 		const systemMsgIndex = this.messages.findIndex(
 			msg => msg.role === 'system' && msg.content.includes('coding assistant'),
 		);
@@ -304,6 +312,18 @@ export class Agent {
 
 	public getCurrentModel(): string {
 		return this.model;
+	}
+
+	/**
+	 * Get enabled tools based on ToolStateManager settings
+	 */
+	private getEnabledTools(): ToolSchema[] {
+		const stateManager = ToolStateManager.getInstance();
+		const allSchemas = ToolRegistry.getAllSchemas();
+
+		return allSchemas.filter(schema =>
+			stateManager.isToolEnabled(schema.function.name),
+		);
 	}
 
 	public setSessionAutoApprove(enabled: boolean): void {
@@ -401,7 +421,7 @@ export class Agent {
 					const requestBody = {
 						model: this.model,
 						messages: this.messages,
-						tools: ToolRegistry.getAllSchemas(),
+						tools: this.getEnabledTools(),
 						tool_choice: 'auto' as const,
 						temperature: this.temperature,
 						max_tokens: 8000,
@@ -430,7 +450,7 @@ export class Agent {
 					for await (const chunk of this.provider.stream(this.messages, {
 						model: this.model,
 						temperature: this.temperature,
-						tools: ToolRegistry.getAllSchemas(),
+						tools: this.getEnabledTools(),
 						maxTokens: 8000,
 						signal: this.currentAbortController.signal,
 					})) {
@@ -543,7 +563,7 @@ export class Agent {
 				const shouldContinue = this.onMaxIterations
 					? await this.onMaxIterations(maxIterations)
 					: false;
-					
+
 				if (shouldContinue) {
 					iteration = 0;
 					continue;
@@ -598,7 +618,7 @@ export class Agent {
 		if (this.onError) {
 			const shouldRetry = await this.onError(errorMessage);
 			if (shouldRetry) return true;
-			
+
 			this.messages.push({
 				role: 'system',
 				content: `Request failed with error: ${errorMessage}. User chose not to retry.`,
@@ -666,7 +686,11 @@ export class Agent {
 			: name;
 	}
 
-	private parseToolArgs(argsString: string): {success: boolean; args?: any; error?: string} {
+	private parseToolArgs(argsString: string): {
+		success: boolean;
+		args?: any;
+		error?: string;
+	} {
 		try {
 			return {success: true, args: JSON.parse(argsString)};
 		} catch (error) {
@@ -692,7 +716,8 @@ export class Agent {
 		const isDangerous = toolCategory === 'dangerous';
 		const requiresApproval = toolCategory === 'approval_required';
 		const needsApproval = isDangerous || requiresApproval;
-		const canAutoApprove = requiresApproval && !isDangerous && this.sessionAutoApprove;
+		const canAutoApprove =
+			requiresApproval && !isDangerous && this.sessionAutoApprove;
 
 		if (!needsApproval || canAutoApprove) {
 			return {approved: true};

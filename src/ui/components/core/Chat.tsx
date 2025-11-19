@@ -16,6 +16,7 @@ import ProviderSelector from '../input-overlays/ProviderSelector.js';
 import SessionSelector from '../input-overlays/SessionSelector.js';
 import MCPSelector from '../input-overlays/MCPSelector.js';
 import LSPSelector from '../input-overlays/LSPSelector.js';
+import ToolSelector from '../input-overlays/ToolSelector.js';
 import MaxIterationsContinue from '../input-overlays/MaxIterationsContinue.js';
 import ErrorRetry from '../input-overlays/ErrorRetry.js';
 import {handleSlashCommand} from '../../../commands/index.js';
@@ -95,6 +96,7 @@ export default function Chat({agent}: ChatProps) {
 	const [showSessionSelector, setShowSessionSelector] = useState(false);
 	const [showMCPSelector, setShowMCPSelector] = useState(false);
 	const [showLSPSelector, setShowLSPSelector] = useState(false);
+	const [showToolSelector, setShowToolSelector] = useState(false);
 	const [animationFrame, setAnimationFrame] = useState(0);
 	const [scrollOffset, setScrollOffset] = useState(0);
 
@@ -236,6 +238,7 @@ export default function Chat({agent}: ChatProps) {
 					setShowSessionSelector,
 					setShowMCPSelector,
 					setShowLSPSelector,
+					setShowToolSelector,
 					toggleReasoning,
 					showReasoning,
 					sessionStats,
@@ -419,6 +422,14 @@ export default function Chat({agent}: ChatProps) {
 		});
 	};
 
+	const handleToolCancel = () => {
+		setShowToolSelector(false);
+		addMessage({
+			role: 'system',
+			content: 'Tool management closed.',
+		});
+	};
+
 	const handleSessionSelect = (sessionId: string) => {
 		setShowSessionSelector(false);
 		const sessionManager = new SessionManager();
@@ -539,6 +550,8 @@ export default function Chat({agent}: ChatProps) {
 						/>
 					) : showLSPSelector ? (
 						<LSPSelector onCancel={handleLSPCancel} />
+					) : showToolSelector ? (
+						<ToolSelector onCancel={handleToolCancel} />
 					) : showModelSelector ? (
 						<ModelSelector
 							onSubmit={handleModelSelect}
