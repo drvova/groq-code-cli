@@ -69,9 +69,10 @@ export class LSPClient {
 	async start(): Promise<void> {
 		let serverCommand = this.options.serverCommand;
 		let serverArgs = this.options.serverArgs;
+		let detectedServer: any = null;
 
 		if (!serverCommand) {
-			const detectedServer = await LSPDetector.getRecommendedForWorkspace(
+			detectedServer = await LSPDetector.getRecommendedForWorkspace(
 				this.workspaceRoot,
 			);
 
@@ -89,8 +90,24 @@ export class LSPClient {
 			serverArgs = ['--stdio'];
 		}
 
+		// Ensure we have a valid command
+		if (!serverCommand) {
+			throw new Error('No server command specified');
+		}
+
+		// If we have a detected bundled server with a path, use it directly
+		let actualCommand: string = serverCommand;
+		let actualArgs: string[] = serverArgs;
+
+		if (detectedServer?.path && detectedServer?.version === 'bundled') {
+			const bundledPath = detectedServer.path;
+			// All bundled servers are node scripts - execute with node
+			actualCommand = process.execPath; // node executable
+			actualArgs = [bundledPath, ...serverArgs];
+		}
+
 		try {
-			this.serverProcess = spawn(serverCommand, serverArgs, {
+			this.serverProcess = spawn(actualCommand, actualArgs, {
 				cwd: this.workspaceRoot,
 				env: process.env,
 			});
