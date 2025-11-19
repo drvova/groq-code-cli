@@ -10,7 +10,6 @@ import {resumeCommand} from './definitions/resume.js';
 import {newCommand} from './definitions/new.js';
 import {mcpCommand} from './definitions/mcp.js';
 import {lspCommand} from './definitions/lsp.js';
-import {diagnosticsCommand} from './definitions/diagnostics.js';
 
 const availableCommands: CommandDefinition[] = [
 	helpCommand,
@@ -24,7 +23,6 @@ const availableCommands: CommandDefinition[] = [
 	initCommand,
 	reasoningCommand,
 	statsCommand,
-	diagnosticsCommand,
 ];
 
 export function getAvailableCommands(): CommandDefinition[] {
