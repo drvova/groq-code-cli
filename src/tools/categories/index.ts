@@ -7,6 +7,7 @@ import {registerFileTools} from './file-tools.js';
 import {registerSearchTools} from './search-tools.js';
 import {registerShellTools} from './shell-tools.js';
 import {registerTaskTools} from './task-tools.js';
+import {registerASTTools} from './ast-tools.js';
 
 /**
  * Initialize all tool categories
@@ -17,6 +18,7 @@ export function initializeAllTools(): void {
 	registerSearchTools();
 	registerShellTools();
 	registerTaskTools();
+	registerASTTools();
 }
 
 /**
@@ -27,4 +29,5 @@ export {
 	registerSearchTools,
 	registerShellTools,
 	registerTaskTools,
+	registerASTTools,
 };
