@@ -19,6 +19,7 @@ export default function LSPStatus({
 }: LSPStatusProps) {
 	const [isRunning, setIsRunning] = useState(false);
 	const [serverName, setServerName] = useState<string>('');
+	const [autoStartAttempted, setAutoStartAttempted] = useState(false);
 	const [stats, setStats] = useState({
 		errors: 0,
 		warnings: 0,
@@ -58,10 +59,22 @@ export default function LSPStatus({
 		return () => clearInterval(interval);
 	}, [refreshInterval]);
 
+	useEffect(() => {
+		const tryAutoStart = async () => {
+			if (!autoStartAttempted) {
+				const manager = LSPManager.getInstance();
+				await manager.tryAutoStart();
+				setAutoStartAttempted(true);
+			}
+		};
+
+		tryAutoStart();
+	}, [autoStartAttempted]);
+
 	if (!isRunning) {
 		return (
 			<Text color="gray" dimColor>
-				LSP: ○ Inactive (use /diagnostics)
+				LSP: ○ Not Available
 			</Text>
 		);
 	}

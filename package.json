@@ -40,6 +40,7 @@
 		"@vue/language-server": "^2.1.10",
 		"svelte-language-server": "^0.17.5",
 		"intelephense": "^1.12.8",
+		"deno": "^2.5.6",
 		"vscode-jsonrpc": "^8.2.1",
 		"vscode-languageserver-protocol": "^3.17.5",
 		"vscode-languageserver-types": "^3.17.5",

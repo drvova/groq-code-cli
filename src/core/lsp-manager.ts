@@ -36,7 +36,8 @@ export class LSPManager {
 	private static instance: LSPManager | null = null;
 	private client: LSPClient | null = null;
 	private workspaceRoot: string;
-	private diagnosticsCallbacks: Set<(diagnostic: LSPDiagnostic) => void> = new Set();
+	private diagnosticsCallbacks: Set<(diagnostic: LSPDiagnostic) => void> =
+		new Set();
 	private serverReadyCallbacks: Set<() => void> = new Set();
 	private serverErrorCallbacks: Set<(error: string) => void> = new Set();
 	private isRunning: boolean = false;
@@ -109,10 +110,35 @@ export class LSPManager {
 			this.client = new LSPClient(clientOptions);
 			await this.client.start();
 		} catch (error) {
-			const errorMsg =
-				error instanceof Error ? error.message : String(error);
+			const errorMsg = error instanceof Error ? error.message : String(error);
 			debugLog('Failed to start LSP manager:', errorMsg);
 			throw error;
+		}
+	}
+
+	/**
+	 * Try to auto-start LSP server with bundled servers (silent failure)
+	 * Returns true if successfully started, false otherwise
+	 */
+	async tryAutoStart(): Promise<boolean> {
+		if (this.isRunning) {
+			return true;
+		}
+
+		try {
+			const detectedServer = await LSPDetector.getRecommendedForWorkspace(
+				this.workspaceRoot,
+			);
+
+			if (!detectedServer) {
+				return false;
+			}
+
+			await this.start();
+			return true;
+		} catch (error) {
+			debugLog('Auto-start failed silently:', error);
+			return false;
 		}
 	}
 

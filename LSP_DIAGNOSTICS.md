@@ -17,25 +17,40 @@ The LSP diagnostics system provides enterprise-grade code analysis with support 
 
 ## Quick Start
 
-### 1. Check Available Servers
+### Zero-Configuration Auto-Start
+
+The LSP diagnostics system **automatically starts** when you launch the CLI if bundled language servers are detected for your workspace. No manual setup required!
+
+**Bundled Servers (Ready Out-of-the-Box):**
+- ✅ TypeScript/JavaScript (typescript-language-server)
+- ✅ Deno (deno lsp)
+- ✅ Python (pyright)
+- ✅ Vue (volar)
+- ✅ Svelte
+- ✅ PHP (intelephense)
+- ✅ HTML, CSS, JSON (vscode-langservers-extracted)
+- ✅ ESLint
+- ✅ Bash
+- ✅ YAML
+
+### Manual Control (Optional)
+
+For advanced configuration or system-installed servers:
 
 ```bash
 # In the CLI, type:
 /diagnostics
 
-# The AI agent will automatically detect available servers
+# The AI agent will detect and configure available servers
 ```
 
-### 2. Start Diagnostics
-
-The AI agent will use the `detect_lsp_servers` and `start_lsp_diagnostics` tools to activate LSP for your workspace.
-
-### 3. Monitor Status
+### Monitor Status
 
 Watch the bottom status bar:
-- `LSP: ○ Inactive (use /diagnostics)` - Not running
+- `LSP: ○ Not Available` - No compatible language server found
 - `LSP ●` - Active, no issues (green)
 - `LSP ● [5W]` - Active, 5 warnings (yellow)
+- `LSP ● [3E]` - Active, 3 errors (red)
 - `LSP ● [3E 8W]` - Active, 3 errors + 8 warnings (red)
 
 ## Supported Language Servers
@@ -202,7 +217,7 @@ The bottom status bar shows real-time LSP diagnostics:
 
 | Display | Meaning |
 |---------|---------|
-| `LSP: ○ Inactive (use /diagnostics)` | LSP not running - type /diagnostics to start |
+| `LSP: ○ Not Available` | No compatible language server found for this workspace |
 | `LSP ●` | Active, no issues (green) |
 | `LSP ● [5W]` | Active, 5 warnings (yellow) |
 | `LSP ● [3E]` | Active, 3 errors (red) |
