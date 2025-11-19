@@ -2,6 +2,7 @@
  * Tool Selector - Interactive menu for tool management
  * Constitutional compliance: AMENDMENT VIII - Comprehensive implementation
  * Constitutional compliance: AMENDMENT XV - Full implementation without placeholders
+ * Enhanced terminal UI aesthetics with box drawing and refined typography
  */
 
 import React, {useState, useEffect} from 'react';
@@ -28,7 +29,9 @@ export default function ToolSelector({
 }: ToolSelectorProps) {
 	const [loading, setLoading] = useState(true);
 	const [tools, setTools] = useState<ToolListItem[]>([]);
-	const [filterEnabled, setFilterEnabled] = useState<'all' | 'enabled' | 'disabled'>('all');
+	const [filterEnabled, setFilterEnabled] = useState<
+		'all' | 'enabled' | 'disabled'
+	>('all');
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
@@ -58,17 +61,16 @@ export default function ToolSelector({
 				};
 			});
 
-			// Apply filter
 			if (filterEnabled === 'enabled') {
 				toolItems = toolItems.filter(t => t.enabled);
 			} else if (filterEnabled === 'disabled') {
 				toolItems = toolItems.filter(t => !t.enabled);
 			}
 
-			// Sort: enabled first, then by category, then alphabetically
 			toolItems.sort((a, b) => {
 				if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
-				if (a.category !== b.category) return a.category.localeCompare(b.category);
+				if (a.category !== b.category)
+					return a.category.localeCompare(b.category);
 				return a.name.localeCompare(b.name);
 			});
 
@@ -116,27 +118,70 @@ export default function ToolSelector({
 		});
 	};
 
+	const getCategoryIcon = (category: string): string => {
+		switch (category) {
+			case 'safe':
+				return '◆';
+			case 'approval_required':
+				return '◇';
+			case 'dangerous':
+				return '◈';
+			default:
+				return '○';
+		}
+	};
+
+	const getCategoryLabel = (category: string): string => {
+		switch (category) {
+			case 'safe':
+				return 'SAFE';
+			case 'approval_required':
+				return 'REQUIRES APPROVAL';
+			case 'dangerous':
+				return 'DANGEROUS';
+			default:
+				return category.toUpperCase();
+		}
+	};
+
 	const renderItem = (item: ToolListItem, isSelected: boolean) => {
-		const statusSymbol = item.enabled ? '✓' : '○';
+		const statusIcon = item.enabled ? '●' : '○';
 		const statusColor = item.enabled ? 'green' : 'gray';
-		const selectedSymbol = isSelected ? '❯ ' : '  ';
+		const categoryIcon = getCategoryIcon(item.category);
 		const categoryColor =
-			item.category === 'safe' ? 'green' :
-			item.category === 'approval_required' ? 'yellow' :
-			item.category === 'dangerous' ? 'red' : 'gray';
+			item.category === 'safe'
+				? 'green'
+				: item.category === 'approval_required'
+				? 'yellow'
+				: item.category === 'dangerous'
+				? 'red'
+				: 'gray';
+
+		const pointer = isSelected ? '▶' : ' ';
+		const pointerColor = isSelected ? 'cyan' : 'gray';
 
 		return (
 			<Box key={item.id} flexDirection="column">
 				<Box>
-					<Text color={isSelected ? 'cyan' : 'white'}>
-						{selectedSymbol}
-						<Text color={statusColor}>{statusSymbol}</Text> {item.name}{' '}
-						<Text color={categoryColor} dimColor>[{item.category}]</Text>
+					<Text color={pointerColor}>{pointer} </Text>
+					<Text color={statusColor} bold>
+						{statusIcon}
+					</Text>
+					<Text> </Text>
+					<Text color={isSelected ? 'cyan' : 'white'} bold={isSelected}>
+						{item.name}
+					</Text>
+					<Text> </Text>
+					<Text color={categoryColor} dimColor>
+						{categoryIcon} {getCategoryLabel(item.category)}
 					</Text>
 				</Box>
 				{isSelected && (
-					<Box marginLeft={4}>
-						<Text color="gray" dimColor>{item.description.slice(0, 80)}...</Text>
+					<Box marginLeft={4} marginTop={0}>
+						<Text color="gray" dimColor>
+							└─ {item.description.slice(0, 75)}
+							{item.description.length > 75 ? '…' : ''}
+						</Text>
 					</Box>
 				)}
 			</Box>
@@ -146,39 +191,138 @@ export default function ToolSelector({
 	const stateManager = ToolStateManager.getInstance();
 	const stats = stateManager.getStats();
 
+	const getFilterIcon = (filter: string): string => {
+		switch (filter) {
+			case 'all':
+				return '◉';
+			case 'enabled':
+				return '●';
+			case 'disabled':
+				return '○';
+			default:
+				return '○';
+		}
+	};
+
 	const footer = (
-		<Box flexDirection="column" marginTop={1}>
-			<Box>
+		<Box
+			flexDirection="column"
+			marginTop={1}
+			paddingTop={1}
+			borderStyle="single"
+			borderTop
+		>
+			<Box marginBottom={1}>
 				<Text dimColor>
-					<Text color="green">↑↓</Text> Navigate{' '}
-					<Text color="green">Enter</Text> Toggle{' '}
-					<Text color="green">A</Text> Enable All{' '}
-					<Text color="green">D</Text> Disable All{' '}
-					<Text color="green">F</Text> Filter{' '}
-					<Text color="green">R</Text> Reset{' '}
-					<Text color="green">Esc</Text> Close
+					┌─{' '}
+					<Text color="cyan" bold>
+						CONTROLS
+					</Text>{' '}
+					─┐
 				</Text>
 			</Box>
-			<Box marginTop={1}>
+			<Box marginLeft={2}>
 				<Text>
-					<Text color="green">●</Text> Enabled: {stats.enabled}{' '}
-					<Text color="gray">○</Text> Disabled: {stats.disabled}{' '}
-					<Text dimColor>Total: {stats.total}</Text>
+					<Text color="cyan" bold>
+						↑ ↓
+					</Text>{' '}
+					<Text dimColor>Navigate</Text>
+					{'  '}
+					<Text color="green" bold>
+						⏎
+					</Text>{' '}
+					<Text dimColor>Toggle</Text>
+					{'  '}
+					<Text color="magenta" bold>
+						A
+					</Text>{' '}
+					<Text dimColor>All On</Text>
+					{'  '}
+					<Text color="red" bold>
+						D
+					</Text>{' '}
+					<Text dimColor>All Off</Text>
+					{'  '}
+					<Text color="yellow" bold>
+						F
+					</Text>{' '}
+					<Text dimColor>Filter</Text>
+					{'  '}
+					<Text color="blue" bold>
+						R
+					</Text>{' '}
+					<Text dimColor>Reset</Text>
+					{'  '}
+					<Text color="gray" bold>
+						Esc
+					</Text>{' '}
+					<Text dimColor>Exit</Text>
 				</Text>
 			</Box>
-			<Box>
+
+			<Box marginTop={1} marginBottom={1}>
 				<Text dimColor>
-					Filter: <Text color="cyan">{filterEnabled}</Text>
+					├─{' '}
+					<Text color="cyan" bold>
+						STATISTICS
+					</Text>{' '}
+					─┤
 				</Text>
 			</Box>
+			<Box marginLeft={2}>
+				<Text>
+					<Text color="green" bold>
+						● {stats.enabled}
+					</Text>
+					<Text dimColor> enabled</Text>
+					{'  │  '}
+					<Text color="gray" bold>
+						○ {stats.disabled}
+					</Text>
+					<Text dimColor> disabled</Text>
+					{'  │  '}
+					<Text color="white" bold>
+						◉ {stats.total}
+					</Text>
+					<Text dimColor> total</Text>
+				</Text>
+			</Box>
+
+			<Box marginTop={1} marginBottom={1}>
+				<Text dimColor>
+					├─{' '}
+					<Text color="cyan" bold>
+						CURRENT FILTER
+					</Text>{' '}
+					─┤
+				</Text>
+			</Box>
+			<Box marginLeft={2}>
+				<Text>
+					<Text color="yellow" bold>
+						{getFilterIcon(filterEnabled)}
+					</Text>{' '}
+					<Text color="cyan" bold>
+						{filterEnabled.toUpperCase()}
+					</Text>
+					<Text dimColor> view</Text>
+				</Text>
+			</Box>
+
 			{error && (
-				<Box marginTop={1}>
-					<Text color="red">Error: {error}</Text>
+				<Box marginTop={1} borderStyle="single" borderColor="red" paddingX={1}>
+					<Text color="red" bold>
+						⚠ ERROR:
+					</Text>
+					<Text> {error}</Text>
 				</Box>
 			)}
+
 			<Box marginTop={1}>
-				<Text color="yellow" dimColor>
-					Note: Tool changes take effect immediately for new requests
+				<Text dimColor>
+					└─{' '}
+					<Text color="yellow">Changes apply immediately to new requests</Text>{' '}
+					─┘
 				</Text>
 			</Box>
 		</Box>
@@ -189,14 +333,14 @@ export default function ToolSelector({
 			items={tools}
 			onSelect={handleToggle}
 			onCancel={onCancel}
-			title="Tool Manager"
+			title="╔═══ TOOL MANAGEMENT CONSOLE ═══╗"
 			renderItem={renderItem}
 			loading={loading}
 			error={error}
 			emptyMessage={
 				filterEnabled === 'all'
-					? 'No tools registered'
-					: `No ${filterEnabled} tools found`
+					? '╰─ No tools registered ─╯'
+					: `╰─ No ${filterEnabled} tools found ─╯`
 			}
 			footer={footer}
 			actions={[
