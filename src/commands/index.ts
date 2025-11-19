@@ -9,6 +9,7 @@ import {statsCommand} from './definitions/stats.js';
 import {resumeCommand} from './definitions/resume.js';
 import {newCommand} from './definitions/new.js';
 import {mcpCommand} from './definitions/mcp.js';
+import {lspCommand} from './definitions/lsp.js';
 import {diagnosticsCommand} from './definitions/diagnostics.js';
 
 const availableCommands: CommandDefinition[] = [
@@ -17,6 +18,7 @@ const availableCommands: CommandDefinition[] = [
 	modelCommand,
 	providerCommand,
 	mcpCommand,
+	lspCommand,
 	newCommand,
 	resumeCommand,
 	initCommand,

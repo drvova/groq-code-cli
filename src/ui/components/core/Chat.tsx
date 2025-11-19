@@ -15,6 +15,7 @@ import ModelSelector from '../input-overlays/ModelSelector.js';
 import ProviderSelector from '../input-overlays/ProviderSelector.js';
 import SessionSelector from '../input-overlays/SessionSelector.js';
 import MCPSelector from '../input-overlays/MCPSelector.js';
+import LSPSelector from '../input-overlays/LSPSelector.js';
 import MaxIterationsContinue from '../input-overlays/MaxIterationsContinue.js';
 import ErrorRetry from '../input-overlays/ErrorRetry.js';
 import {handleSlashCommand} from '../../../commands/index.js';
@@ -93,6 +94,7 @@ export default function Chat({agent}: ChatProps) {
 	const [showProviderSelector, setShowProviderSelector] = useState(false);
 	const [showSessionSelector, setShowSessionSelector] = useState(false);
 	const [showMCPSelector, setShowMCPSelector] = useState(false);
+	const [showLSPSelector, setShowLSPSelector] = useState(false);
 	const [animationFrame, setAnimationFrame] = useState(0);
 	const [scrollOffset, setScrollOffset] = useState(0);
 
@@ -179,7 +181,8 @@ export default function Chat({agent}: ChatProps) {
 				!showLogin &&
 				!showModelSelector &&
 				!showProviderSelector &&
-				!showMCPSelector,
+				!showMCPSelector &&
+				!showLSPSelector,
 		);
 	}, [
 		isProcessing,
@@ -189,6 +192,7 @@ export default function Chat({agent}: ChatProps) {
 		showModelSelector,
 		showProviderSelector,
 		showMCPSelector,
+		showLSPSelector,
 	]);
 
 	// Animation frame update for spinner
@@ -231,6 +235,7 @@ export default function Chat({agent}: ChatProps) {
 					setShowProviderSelector,
 					setShowSessionSelector,
 					setShowMCPSelector,
+					setShowLSPSelector,
 					toggleReasoning,
 					showReasoning,
 					sessionStats,
@@ -406,6 +411,14 @@ export default function Chat({agent}: ChatProps) {
 		});
 	};
 
+	const handleLSPCancel = () => {
+		setShowLSPSelector(false);
+		addMessage({
+			role: 'system',
+			content: 'LSP server management closed.',
+		});
+	};
+
 	const handleSessionSelect = (sessionId: string) => {
 		setShowSessionSelector(false);
 		const sessionManager = new SessionManager();
@@ -524,6 +537,8 @@ export default function Chat({agent}: ChatProps) {
 							onCancel={handleMCPCancel}
 							onRefresh={handleMCPRefresh}
 						/>
+					) : showLSPSelector ? (
+						<LSPSelector onCancel={handleLSPCancel} />
 					) : showModelSelector ? (
 						<ModelSelector
 							onSubmit={handleModelSelect}

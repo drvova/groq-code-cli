@@ -6,6 +6,7 @@ export interface CommandContext {
 	setShowProviderSelector?: (show: boolean) => void;
 	setShowSessionSelector?: (show: boolean) => void;
 	setShowMCPSelector?: (show: boolean) => void;
+	setShowLSPSelector?: (show: boolean) => void;
 	toggleReasoning?: () => void;
 	showReasoning?: boolean;
 	sessionStats?: {
