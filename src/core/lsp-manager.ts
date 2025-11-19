@@ -93,6 +93,8 @@ export class LSPManager {
 				workspaceRoot: this.workspaceRoot,
 				serverCommand: options?.serverCommand || this.detectedServer?.command,
 				serverArgs: options?.serverArgs || this.detectedServer?.args,
+				serverPath: this.detectedServer?.path,
+				isBundled: this.detectedServer?.version === 'bundled',
 				onDiagnostics: diagnostic => {
 					this.diagnosticsCallbacks.forEach(cb => cb(diagnostic));
 				},

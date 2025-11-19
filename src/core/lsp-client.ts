@@ -44,6 +44,8 @@ export interface LSPClientOptions {
 	workspaceRoot: string;
 	serverCommand?: string;
 	serverArgs?: string[];
+	serverPath?: string;
+	isBundled?: boolean;
 	onDiagnostics?: (diagnostic: LSPDiagnostic) => void;
 	onServerReady?: () => void;
 	onServerError?: (error: string) => void;
@@ -69,10 +71,11 @@ export class LSPClient {
 	async start(): Promise<void> {
 		let serverCommand = this.options.serverCommand;
 		let serverArgs = this.options.serverArgs;
-		let detectedServer: any = null;
+		let serverPath = this.options.serverPath;
+		let isBundled = this.options.isBundled;
 
 		if (!serverCommand) {
-			detectedServer = await LSPDetector.getRecommendedForWorkspace(
+			const detectedServer = await LSPDetector.getRecommendedForWorkspace(
 				this.workspaceRoot,
 			);
 
@@ -84,6 +87,8 @@ export class LSPClient {
 
 			serverCommand = detectedServer.command;
 			serverArgs = detectedServer.args;
+			serverPath = detectedServer.path;
+			isBundled = detectedServer.version === 'bundled';
 		}
 
 		if (!serverArgs) {
@@ -95,15 +100,14 @@ export class LSPClient {
 			throw new Error('No server command specified');
 		}
 
-		// If we have a detected bundled server with a path, use it directly
+		// If we have a bundled server with a path, use node to execute it
 		let actualCommand: string = serverCommand;
 		let actualArgs: string[] = serverArgs;
 
-		if (detectedServer?.path && detectedServer?.version === 'bundled') {
-			const bundledPath = detectedServer.path;
+		if (isBundled && serverPath) {
 			// All bundled servers are node scripts - execute with node
 			actualCommand = process.execPath; // node executable
-			actualArgs = [bundledPath, ...serverArgs];
+			actualArgs = [serverPath, ...serverArgs];
 		}
 
 		try {
