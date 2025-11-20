@@ -1,0 +1,115 @@
+{
+	"generated_at": "2025-11-20T03:07:04.754Z",
+	"root": ".",
+	"summary": {
+		"total_files": 44,
+		"total_directories": 17,
+		"languages": [
+			{
+				"extension": "ts",
+				"files": 30
+			},
+			{
+				"extension": "md",
+				"files": 7
+			},
+			{
+				"extension": "json",
+				"files": 3
+			},
+			{
+				"extension": "png",
+				"files": 2
+			},
+			{
+				"extension": "(none)",
+				"files": 1
+			},
+			{
+				"extension": "tsx",
+				"files": 1
+			}
+		]
+	},
+	"package": {
+		"name": "groq-code-cli",
+		"version": "1.0.2",
+		"scripts": ["build", "dev", "prepare", "test"],
+		"dependencies_count": 26,
+		"dev_dependencies_count": 15
+	},
+	"config_files": ["package.json", "tsconfig.json"],
+	"notable_files": [
+		"AGENTS.md",
+		"ARCHITECTURE_ANALYSIS.md",
+		"CLAUDE.md",
+		"LICENSE",
+		"LSP_DIAGNOSTICS.md",
+		"README.md",
+		"docs/AST_INTEGRATION.md",
+		"docs/AST_QUICK_START.md"
+	],
+	"tree": [
+		"AGENTS.md",
+		"ARCHITECTURE_ANALYSIS.md",
+		"CLAUDE.md",
+		"LICENSE",
+		"LSP_DIAGNOSTICS.md",
+		"README.md",
+		"docs/",
+		"AST_INTEGRATION.md",
+		"AST_QUICK_START.md",
+		"login.png",
+		"thumbnail.png",
+		"package-lock.json",
+		"package.json",
+		"src/",
+		"commands/",
+		"definitions/",
+		"base.ts",
+		"index.ts",
+		"core/",
+		"config/",
+		"providers/",
+		"agent.ts",
+		"cli.ts",
+		"context-manager.ts",
+		"lsp-client.ts",
+		"lsp-config.ts",
+		"lsp-detector.ts",
+		"lsp-manager.ts",
+		"mcp-client.ts",
+		"mcp-manager.ts",
+		"prompts.ts",
+		"tool-handler.ts",
+		"tool-state-manager.ts",
+		"tests/",
+		"proxy-config.test.ts",
+		"utils.test.ts",
+		"tools/",
+		"categories/",
+		"registry/",
+		"schemas/",
+		"index.ts",
+		"tools.ts",
+		"ui/",
+		"components/",
+		"hooks/",
+		"App.tsx",
+		"utils/",
+		"ast-analyzer.ts",
+		"context.ts",
+		"debug.ts",
+		"file-ops.ts",
+		"local-settings.ts",
+		"markdown.ts",
+		"models-api.ts",
+		"proxy-config.ts",
+		"session-manager.ts",
+		"test/",
+		"agent-context-load.test.ts",
+		"context-generator.test.ts",
+		"init-command.test.ts",
+		"tsconfig.json"
+	]
+}
