@@ -8,7 +8,7 @@ import {registerSearchTools} from './search-tools.js';
 import {registerShellTools} from './shell-tools.js';
 import {registerTaskTools} from './task-tools.js';
 import {registerASTTools} from './ast-tools.js';
-import {registerLSPTools} from './lsp-tools-registry.js';
+import {registerLSPTools} from './lsp-tools.js';
 
 /**
  * Initialize all tool categories

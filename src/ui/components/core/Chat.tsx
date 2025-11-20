@@ -1,14 +1,18 @@
 import React, {useState, useEffect} from 'react';
-import {Box, Text, useInput, useApp} from 'ink';
+import {Box, Text, useInput} from 'ink';
 import {Agent} from '../../../core/agent.js';
 import {useAgent} from '../../hooks/useAgent.js';
 import {useTokenMetrics} from '../../hooks/useTokenMetrics.js';
 import {useSessionStats} from '../../hooks/useSessionStats.js';
+import {useSessionHandlers} from '../../hooks/useSessionHandlers.js';
+import {useChatUIState} from '../../hooks/useChatUIState.js';
+import {useChatHandlers} from '../../hooks/useChatHandlers.js';
 import MessageHistory from './MessageHistory.js';
 import MessageInput from './MessageInput.js';
 import TokenMetrics from '../display/TokenMetrics.js';
 import MCPStatus from '../display/MCPStatus.js';
 import LSPStatus from '../display/LSPStatus.js';
+import {TerminalStatus, getTerminalStatusConfig} from '../display/TerminalStatus.js';
 import PendingToolApproval from '../input-overlays/PendingToolApproval.js';
 import Login from '../input-overlays/Login.js';
 import ModelSelector from '../input-overlays/ModelSelector.js';
@@ -19,9 +23,7 @@ import LSPSelector from '../input-overlays/LSPSelector.js';
 import ToolSelector from '../input-overlays/ToolSelector.js';
 import MaxIterationsContinue from '../input-overlays/MaxIterationsContinue.js';
 import ErrorRetry from '../input-overlays/ErrorRetry.js';
-import {handleSlashCommand} from '../../../commands/index.js';
 import {getConfig} from '../../../core/config/index.js';
-import {SessionManager} from '../../../utils/session-manager.js';
 
 interface ChatProps {
 	agent: Agent;
@@ -50,6 +52,7 @@ export default function Chat({agent}: ChatProps) {
 		prompt_tokens: number;
 		completion_tokens: number;
 		total_tokens: number;
+		total_time?: number;
 	}) => {
 		addApiTokens(usage); // Add to current request metrics
 		addSessionTokens(usage); // Add to cumulative session stats
@@ -74,31 +77,65 @@ export default function Chat({agent}: ChatProps) {
 		pendingError,
 		sessionAutoApprove,
 		showReasoning,
-		sendMessage,
-		approveToolExecution,
-		respondToMaxIterations,
-		respondToError,
-		addMessage,
-		setApiKey,
-		clearHistory,
-		restoreSession,
-		toggleAutoApprove,
-		toggleReasoning,
 		interruptRequest,
+		toggleAutoApprove,
 	} = agentHook;
 
-	const {exit} = useApp();
-	const [inputValue, setInputValue] = useState('');
-	const [showInput, setShowInput] = useState(true);
-	const [showLogin, setShowLogin] = useState(false);
-	const [showModelSelector, setShowModelSelector] = useState(false);
-	const [showProviderSelector, setShowProviderSelector] = useState(false);
-	const [showSessionSelector, setShowSessionSelector] = useState(false);
-	const [showMCPSelector, setShowMCPSelector] = useState(false);
-	const [showLSPSelector, setShowLSPSelector] = useState(false);
-	const [showToolSelector, setShowToolSelector] = useState(false);
+	const uiState = useChatUIState();
+	const {
+		inputValue,
+		setInputValue,
+		showInput,
+		setShowInput,
+		showLogin,
+		showModelSelector,
+		showProviderSelector,
+		showSessionSelector,
+		showMCPSelector,
+		showLSPSelector,
+		showToolSelector,
+		scrollOffset,
+		setScrollOffset,
+	} = uiState;
+
+	const sessionHandlers = useSessionHandlers({
+		agent,
+		messages,
+		sessionStats,
+		addMessage: agentHook.addMessage,
+		restoreSession: agentHook.restoreSession,
+		clearSessionStats,
+		addSessionTokens,
+		setShowSessionSelector: uiState.setShowSessionSelector,
+	});
+
+	const {
+		handleSendMessage,
+		handleApproval,
+		handleErrorRetry,
+		handleErrorCancel,
+		handleLogin,
+		handleLoginCancel,
+		handleModelSelect,
+		handleModelCancel,
+		handleProviderSelect,
+		handleProviderCancel,
+		handleMCPRefresh,
+		handleMCPCancel,
+		handleLSPCancel,
+		handleToolCancel,
+		exit,
+	} = useChatHandlers({
+		agent,
+		uiState,
+		agentHook,
+		sessionStats,
+		resetMetrics,
+		clearSessionStats,
+		sessionHandlers,
+	});
+
 	const [animationFrame, setAnimationFrame] = useState(0);
-	const [scrollOffset, setScrollOffset] = useState(0);
 
 	// Handle global keyboard shortcuts
 	useInput((input, key) => {
@@ -210,290 +247,6 @@ export default function Chat({agent}: ChatProps) {
 		setScrollOffset(0);
 	}, [messages.length]);
 
-	const handleSendMessage = async (message: string) => {
-		if (message.trim() && !isProcessing) {
-			setInputValue('');
-
-			// Handle shell commands with ! prefix
-			if (message.startsWith('!')) {
-				const shellCommand = message.slice(1).trim();
-				if (shellCommand) {
-					addMessage({
-						role: 'user',
-						content: message,
-					});
-					addMessage({
-						role: 'assistant',
-						content: `Executing shell command: \`${shellCommand}\``,
-					});
-					await sendMessage(`Execute this shell command: ${shellCommand}`);
-				}
-				return;
-			}
-
-			// Handle slash commands
-			if (message.startsWith('/')) {
-				handleSlashCommand(message, {
-					addMessage: (msg: any) => {
-						const msgId = addMessage(msg);
-						// Handle session actions from command metadata
-						if (msg.meta?.action === 'save_session') {
-							handleSaveSession(msg.meta.sessionName);
-						} else if (msg.meta?.action === 'restore_session') {
-							handleRestoreSession(msg.meta.session);
-						}
-						return msgId;
-					},
-					clearHistory: () => {
-						clearHistory();
-						clearSessionStats();
-						resetMetrics();
-					},
-					setShowLogin,
-					setShowModelSelector,
-					setShowProviderSelector,
-					setShowSessionSelector,
-					setShowMCPSelector,
-					setShowLSPSelector,
-					setShowToolSelector,
-					toggleReasoning,
-					showReasoning,
-					sessionStats,
-				});
-				return;
-			}
-
-			// The agent will handle starting request tracking
-			await sendMessage(message);
-		}
-	};
-
-	const handleApproval = (approved: boolean, autoApproveSession?: boolean) => {
-		approveToolExecution(approved, autoApproveSession);
-	};
-
-	const handleErrorRetry = () => {
-		respondToError(true);
-	};
-
-	const handleErrorCancel = () => {
-		respondToError(false);
-	};
-
-	const handleLogin = (apiKey: string) => {
-		setShowLogin(false);
-		const configManager = getConfig().getConfigManager();
-		const selectedProvider = configManager.getSelectedProvider() || 'groq';
-
-		// Save API key for the selected provider
-		configManager.setProviderApiKey(selectedProvider, apiKey);
-
-		// Reset agent client to force re-initialization with new key
-		agent.clearApiKey();
-
-		addMessage({
-			role: 'system',
-			content: `API key saved for ${selectedProvider}. You can now start chatting.`,
-		});
-	};
-
-	const handleLoginCancel = () => {
-		setShowLogin(false);
-		addMessage({
-			role: 'system',
-			content: 'Login canceled.',
-		});
-	};
-
-	const handleSaveSession = (sessionName: string) => {
-		const sessionManager = new SessionManager();
-		const configManager = getConfig().getConfigManager();
-		const currentProvider = configManager.getSelectedProvider() || 'groq';
-		const currentModel =
-			configManager.getDefaultModel() || 'llama-3.3-70b-versatile';
-
-		const agentMessages = agent.getMessages();
-		const uiMessages = messages;
-
-		const currentContext = agent.getCurrentContext();
-
-		sessionManager.saveSession(
-			sessionName,
-			agentMessages,
-			uiMessages,
-			sessionStats,
-			currentProvider,
-			currentModel,
-			currentContext?.content,
-			currentContext?.path,
-		);
-
-		addMessage({
-			role: 'system',
-			content: `Session saved: **${sessionName}**\n\nMessages: ${
-				uiMessages.length
-			} | Tokens: ${sessionStats.totalTokens}${
-				currentContext ? `\nContext: ${currentContext.path}` : ''
-			}`,
-		});
-	};
-
-	const handleRestoreSession = (session: any) => {
-		restoreSession(session);
-		const configManager = getConfig().getConfigManager();
-		configManager.setSelectedProvider(session.provider);
-		agent.setModel(session.model);
-
-		if (session.contextSnapshot && session.contextPath) {
-			const currentContext = agent.getCurrentContext();
-			const contextChanged =
-				!currentContext || currentContext.content !== session.contextSnapshot;
-
-			if (contextChanged) {
-				agent.restoreContext(session.contextSnapshot, session.contextPath);
-				addMessage({
-					role: 'system',
-					content: `⚠ Context restored from session snapshot.\n\nThe current project context has changed since this session was saved. Using original context to preserve conversation coherence.`,
-				});
-			} else {
-				addMessage({
-					role: 'system',
-					content: `✓ Context unchanged since session was saved.`,
-				});
-			}
-		}
-
-		clearSessionStats();
-		addSessionTokens({
-			prompt_tokens: session.stats.promptTokens,
-			completion_tokens: session.stats.completionTokens,
-			total_tokens: session.stats.totalTokens,
-			total_time: session.stats.totalTime,
-		});
-
-		for (let i = 1; i < session.stats.totalRequests; i++) {
-			addSessionTokens({
-				prompt_tokens: 0,
-				completion_tokens: 0,
-				total_tokens: 0,
-			});
-		}
-	};
-
-	const handleModelSelect = (model: string) => {
-		setShowModelSelector(false);
-		// Clear chat history and session stats when switching models
-		clearHistory();
-		clearSessionStats();
-		// Set the new model on the agent
-		agent.setModel(model);
-		addMessage({
-			role: 'system',
-			content: `Switched to model: ${model}. Chat history has been cleared.`,
-		});
-	};
-
-	const handleModelCancel = () => {
-		setShowModelSelector(false);
-		addMessage({
-			role: 'system',
-			content: 'Model selection canceled.',
-		});
-	};
-
-	const handleProviderSelect = (providerId: string) => {
-		setShowProviderSelector(false);
-		const configManager = getConfig().getConfigManager();
-		configManager.setSelectedProvider(providerId);
-		addMessage({
-			role: 'system',
-			content: `Selected provider: ${providerId}. Use /login to authenticate.`,
-		});
-	};
-
-	const handleProviderCancel = () => {
-		setShowProviderSelector(false);
-		addMessage({
-			role: 'system',
-			content: 'Provider selection canceled.',
-		});
-	};
-
-	const handleMCPRefresh = async () => {
-		await agent.refreshMCPTools();
-	};
-
-	const handleMCPCancel = () => {
-		setShowMCPSelector(false);
-		addMessage({
-			role: 'system',
-			content: 'MCP server management closed.',
-		});
-	};
-
-	const handleLSPCancel = () => {
-		setShowLSPSelector(false);
-		addMessage({
-			role: 'system',
-			content: 'LSP server management closed.',
-		});
-	};
-
-	const handleToolCancel = () => {
-		setShowToolSelector(false);
-		addMessage({
-			role: 'system',
-			content: 'Tool management closed.',
-		});
-	};
-
-	const handleSessionSelect = (sessionId: string) => {
-		setShowSessionSelector(false);
-		const sessionManager = new SessionManager();
-		const session = sessionManager.getSession(sessionId);
-
-		if (session) {
-			handleRestoreSession(session);
-			addMessage({
-				role: 'system',
-				content: `Resumed session: **${session.name}**\n\nMessages: ${session.messageCount} | Tokens: ${session.stats.totalTokens}\nModel: ${session.provider}/${session.model}`,
-			});
-		} else {
-			addMessage({
-				role: 'system',
-				content: 'Failed to load session.',
-			});
-		}
-	};
-
-	const handleSessionDelete = (sessionId: string) => {
-		const sessionManager = new SessionManager();
-		const session = sessionManager.getSession(sessionId);
-		const sessionName = session?.name || sessionId;
-
-		const deleted = sessionManager.deleteSession(sessionId);
-
-		if (deleted) {
-			addMessage({
-				role: 'system',
-				content: `Deleted session: **${sessionName}**`,
-			});
-		} else {
-			addMessage({
-				role: 'system',
-				content: `Failed to delete session: **${sessionName}**`,
-			});
-		}
-	};
-
-	const handleSessionCancel = () => {
-		setShowSessionSelector(false);
-		addMessage({
-			role: 'system',
-			content: 'Session selection canceled.',
-		});
-	};
-
 	return (
 		<Box flexDirection="column" height="100%">
 			{/* Chat messages area - grows to fill available space */}
@@ -540,8 +293,8 @@ export default function Chat({agent}: ChatProps) {
 					) : pendingMaxIterations ? (
 						<MaxIterationsContinue
 							maxIterations={pendingMaxIterations.maxIterations}
-							onContinue={() => respondToMaxIterations(true)}
-							onStop={() => respondToMaxIterations(false)}
+							onContinue={() => agentHook.respondToMaxIterations(true)}
+							onStop={() => agentHook.respondToMaxIterations(false)}
 						/>
 					) : pendingError ? (
 						<ErrorRetry
@@ -577,9 +330,9 @@ export default function Chat({agent}: ChatProps) {
 						/>
 					) : showSessionSelector ? (
 						<SessionSelector
-							onSubmit={handleSessionSelect}
-							onDelete={handleSessionDelete}
-							onCancel={handleSessionCancel}
+							onSubmit={sessionHandlers.handleSessionSelect}
+							onDelete={sessionHandlers.handleSessionDelete}
+							onCancel={sessionHandlers.handleSessionCancel}
 						/>
 					) : showInput ? (
 						<MessageInput
@@ -609,6 +362,7 @@ export default function Chat({agent}: ChatProps) {
 					<Box gap={2}>
 						<MCPStatus />
 						<LSPStatus />
+						<TerminalStatus />
 						<Text color="cyan" bold>
 							{sessionAutoApprove ? 'auto-approve edits is on' : ''}
 						</Text>

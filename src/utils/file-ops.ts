@@ -1,6 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { IGNORE_PATTERNS } from './constants.js';
+
+// Files and directories to ignore
+export const IGNORE_PATTERNS = new Set([
+  'node_modules', '.git', '__pycache__', 'venv', '.venv', 'build', 'dist',
+  '.idea', '.vscode', '.DS_Store', '*.pyc', '*.log', '*.tmp'
+]);
 
 /**
  * Write content to a file with safety checks
@@ -48,7 +53,7 @@ export async function deleteFile(filepath: string, force: boolean = false): Prom
     if (stats.isFile()) {
       await fs.promises.unlink(filePath);
     } else if (stats.isDirectory()) {
-      await fs.promises.rmdir(filePath, { recursive: true });
+      await fs.promises.rm(filePath, { recursive: true, force: true });
     }
     return true;
   } catch (error: any) {
@@ -64,8 +69,6 @@ export async function deleteFile(filepath: string, force: boolean = false): Prom
  */
 export async function displayTree(
   directory: string = '.', 
-  pattern: string = '*', 
-  recursive: boolean = false, 
   showHidden: boolean = false
 ): Promise<string> {
   const directoryPath = path.resolve(directory);

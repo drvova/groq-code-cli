@@ -17,6 +17,7 @@ import {
     DELETE_FILE_SCHEMA,
     LIST_FILES_SCHEMA
 } from '../schemas/file-schemas.js';
+import { deleteFile } from '../../utils/file-ops.js';
 
 // Executors
 async function readFileExecutor(
@@ -214,22 +215,15 @@ async function deleteFileExecutor(
 	const {file_path} = args;
 
 	try {
-		const resolvedPath = path.resolve(file_path);
-		const stats = await fs.promises.stat(resolvedPath);
-
-		if (stats.isDirectory()) {
-			await fs.promises.rm(resolvedPath, {recursive: true, force: true});
-			return createToolResponse(
-				true,
-				'',
-				`Deleted directory ${file_path} and all contents`,
-			);
+		const success = await deleteFile(file_path, true);
+		
+		if (success) {
+			return createToolResponse(true, '', `Deleted ${file_path}`);
 		} else {
-			await fs.promises.unlink(resolvedPath);
-			return createToolResponse(true, '', `Deleted file ${file_path}`);
+			return createToolResponse(false, undefined, '', `Error: Failed to delete ${file_path} (file may not exist)`);
 		}
 	} catch (error) {
-		const err = error as NodeJS.ErrnoException;
+		const err = error as Error;
 		return createToolResponse(
 			false,
 			undefined,

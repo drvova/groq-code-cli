@@ -35,3 +35,30 @@ export const EXECUTE_COMMAND_SCHEMA: ToolSchema = {
 		},
 	},
 };
+
+export const TERMINAL_SETUP_SCHEMA: ToolSchema = {
+	type: 'function',
+	function: {
+		name: 'setup_terminal',
+		description:
+			'Automated setup for terminal integration (Warp, iTerm2, macOS Terminal). Detects current terminal and configures optimal settings, shell completions, and integration features. Provides terminal-specific enhancements and setup verification.',
+		parameters: {
+			type: 'object',
+			properties: {
+				setup_type: {
+					type: 'string',
+					enum: ['auto', 'completions', 'integration'],
+					description:
+						'Setup type: auto (full terminal setup), completions (shell completions only), integration (terminal-specific features)',
+				},
+				terminal_type: {
+					type: 'string',
+					enum: ['detect', 'warp', 'iterm2', 'macos-terminal', 'zed'],
+					description:
+						'Target terminal: detect (automatic), warp, iterm2, macos-terminal (macOS Terminal), zed (Zed Editor)',
+				},
+			},
+			required: ['setup_type', 'terminal_type'],
+		},
+	},
+};

@@ -5,7 +5,7 @@ import * as path from 'path';
 import {
 	validateReadBeforeEdit,
 	getReadBeforeEditError,
-} from '../../../tools/validators.js';
+} from '../../../tools/index.js';
 import {
 	generateUnifiedDiff,
 	parseDiffIntoChunks,

@@ -1,4 +1,4 @@
-import {setReadFilesTracker} from './validators.js';
+import * as path from 'path';
 
 export interface ToolResult {
 	success: boolean;
@@ -16,8 +16,15 @@ export function getReadFilesTracker(): Set<string> {
 	return readFiles;
 }
 
-// Initialize validator with readFiles tracker
-setReadFilesTracker(readFiles);
+// Check if a file has been read before allowing edits
+export function validateReadBeforeEdit(filePath: string): boolean {
+	const resolvedPath = path.resolve(filePath);
+	return readFiles.has(resolvedPath);
+}
+
+export function getReadBeforeEditError(filePath: string): string {
+	return `File must be read before editing. Use read_file tool first: ${filePath}`;
+}
 
 /**
  * Format key parameters for tool call display

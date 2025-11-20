@@ -7,7 +7,8 @@ import {exec} from 'child_process';
 import {promisify} from 'util';
 import {ToolSchema, ToolRegistry} from '../registry/tool-registry.js';
 import {createToolResponse} from '../tools.js';
-import {EXECUTE_COMMAND_SCHEMA} from '../schemas/shell-schemas.js';
+import {EXECUTE_COMMAND_SCHEMA, TERMINAL_SETUP_SCHEMA} from '../schemas/shell-schemas.js';
+import {runTerminalSetup, installShellCompletions} from '../../utils/terminal-setup.js';
 
 const execAsync = promisify(exec);
 
@@ -78,11 +79,58 @@ async function executeCommandExecutor(
 	}
 }
 
+// Terminal setup executor
+async function terminalSetupExecutor(
+	args: Record<string, any>,
+): Promise<Record<string, any>> {
+	const {setup_type, terminal_type} = args;
+
+	try {
+		let result;
+
+		if (setup_type === 'auto') {
+			result = await runTerminalSetup();
+		} else if (setup_type === 'completions') {
+			result = await installShellCompletions();
+		} else {
+			result = await runTerminalSetup();
+		}
+
+		if (result.success) {
+			return createToolResponse(
+				true,
+				undefined,
+				result.message,
+				result.details,
+			);
+		}
+
+		return createToolResponse(
+			false,
+			undefined,
+			'',
+			`${result.message}: ${result.details || 'No details'}`,
+		);
+	} catch (error) {
+		return createToolResponse(
+			false,
+			undefined,
+			'',
+			`Terminal setup error: ${error instanceof Error ? error.message : String(error)}`,
+		);
+	}
+}
+
 // Register all shell tools
 export function registerShellTools(): void {
 	ToolRegistry.registerTool(
 		EXECUTE_COMMAND_SCHEMA,
 		executeCommandExecutor,
 		'dangerous',
+	);
+	ToolRegistry.registerTool(
+		TERMINAL_SETUP_SCHEMA,
+		terminalSetupExecutor,
+		'approval_required',
 	);
 }

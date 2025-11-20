@@ -11,6 +11,8 @@ export {
 	getReadFilesTracker,
 	formatToolParams,
 	createToolResponse,
+	validateReadBeforeEdit,
+	getReadBeforeEditError,
 } from './tools.js';
 
 // Re-export ToolResult type

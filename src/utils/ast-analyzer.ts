@@ -95,60 +95,33 @@ export class ASTAnalyzer {
 		if (!sourceFile) return [];
 
 		const symbols: CodeSymbol[] = [];
+        const line = (pos: number) => sourceFile.getLineAndColumnAtPos(pos).line;
+
+        const addSymbol = (name: string | undefined, kind: string, node: Node, exported: boolean = false) => {
+            if (name) {
+                symbols.push({
+                    name,
+                    kind,
+                    filePath,
+                    line: line(node.getStart()),
+                    references: (node as any).findReferences?.().length || 0,
+                    exported
+                });
+            }
+        };
 
 		// Extract functions
-		sourceFile.getFunctions().forEach(func => {
-			const name = func.getName();
-			if (!name) return;
-
-			symbols.push({
-				name,
-				kind: 'function',
-				filePath,
-				line: sourceFile.getLineAndColumnAtPos(func.getStart()).line,
-				references: func.findReferences().length,
-				exported: func.isExported(),
-			});
-		});
+		sourceFile.getFunctions().forEach(func => addSymbol(func.getName(), 'function', func, func.isExported()));
 
 		// Extract classes
-		sourceFile.getClasses().forEach(cls => {
-			const name = cls.getName();
-			if (!name) return;
-
-			symbols.push({
-				name,
-				kind: 'class',
-				filePath,
-				line: sourceFile.getLineAndColumnAtPos(cls.getStart()).line,
-				references: cls.findReferences().length,
-				exported: cls.isExported(),
-			});
-		});
+		sourceFile.getClasses().forEach(cls => addSymbol(cls.getName(), 'class', cls, cls.isExported()));
 
 		// Extract interfaces
-		sourceFile.getInterfaces().forEach(iface => {
-			symbols.push({
-				name: iface.getName(),
-				kind: 'interface',
-				filePath,
-				line: sourceFile.getLineAndColumnAtPos(iface.getStart()).line,
-				references: iface.findReferences().length,
-				exported: iface.isExported(),
-			});
-		});
+		sourceFile.getInterfaces().forEach(iface => addSymbol(iface.getName(), 'interface', iface, iface.isExported()));
 
 		// Extract variables
 		sourceFile.getVariableDeclarations().forEach(varDecl => {
-			const name = varDecl.getName();
-			symbols.push({
-				name,
-				kind: 'variable',
-				filePath,
-				line: sourceFile.getLineAndColumnAtPos(varDecl.getStart()).line,
-				references: varDecl.findReferences().length,
-				exported: this.isVariableExported(varDecl),
-			});
+			addSymbol(varDecl.getName(), 'variable', varDecl, this.isVariableExported(varDecl));
 		});
 
 		return symbols;
