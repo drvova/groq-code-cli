@@ -70,7 +70,11 @@ export function detectTerminal(): TerminalInfo {
 	}
 
 	// Ghostty terminal detection
-	if (env.GHOSTTY_RESOURCES_DIR || env.TERM === 'ghostty') {
+	if (
+		env.GHOSTTY_RESOURCES_DIR ||
+		env.TERM === 'xterm-ghostty' ||
+		env.TERM_PROGRAM === 'ghostty'
+	) {
 		return {
 			name: 'Ghostty',
 			appId: 'com.mitchellh.ghostty',
@@ -80,7 +84,11 @@ export function detectTerminal(): TerminalInfo {
 	}
 
 	// Kitty terminal detection
-	if (env.TERM === 'xterm-kitty' || env.KITTY_WINDOW_ID || env.KITTY_PID) {
+	if (
+		env.TERM === 'xterm-kitty' ||
+		env.KITTY_WINDOW_ID !== undefined ||
+		env.KITTY_PID !== undefined
+	) {
 		return {
 			name: 'Kitty',
 			appId: 'net.kovidgoyal.kitty',
